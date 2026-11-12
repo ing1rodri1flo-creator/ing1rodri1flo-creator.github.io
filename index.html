@@ -397,9 +397,13 @@ if(!window.google||!google.script){(function(){
   function llamar(fn,args,ok,fail){
     if(!window.API_URL||API_URL.indexOf("script.google.com")<0){fail&&fail(new Error("Falta configurar la dirección del servidor (config.js)."));return}
     fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn:fn,args:args})})
-      .then(function(r){return r.json()})
-      .then(function(j){if(j.ok){ok&&ok(j.data)}else{fail&&fail(new Error(j.error||"Error del servidor."))}})
-      .catch(function(){fail&&fail(new Error("No hay conexión con el servidor. Revisa tu internet e inténtalo otra vez."))});
+      .then(function(r){return r.text()})
+      .then(function(t){var j;try{j=JSON.parse(t)}catch(e){
+          var m=(t.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()).slice(0,160);
+          window.ULTIMO_ERROR="RESPUESTA NO JSON: "+m;console.error(window.ULTIMO_ERROR);
+          fail&&fail(new Error("El servidor respondió algo inesperado ["+m+"]"));return}
+        if(j.ok){ok&&ok(j.data)}else{fail&&fail(new Error(j.error||"Error del servidor."))}})
+      .catch(function(e){window.ULTIMO_ERROR="FETCH: "+e;console.error(window.ULTIMO_ERROR);fail&&fail(new Error("No hay conexión con el servidor [acceso bloqueado o sin internet]."))});
   }
   function hacer(ok,fail){return new Proxy({},{get:function(_,k){
     if(k==="withSuccessHandler")return function(f){return hacer(f,fail)};
@@ -523,7 +527,7 @@ $("otra").addEventListener("click",()=>{
   google.script.run.withSuccessHandler(pintar).datosPagina();
   $("robot").focus();
 });
-google.script.run.withSuccessHandler(pintar).withFailureHandler(()=>{$("cats").textContent="No se pudieron cargar las categorías. Recarga la página."}).datosPagina();
+google.script.run.withSuccessHandler(pintar).withFailureHandler(e=>{$("cats").textContent="No se pudieron cargar las categorías. Recarga la página."+(e&&e.message?" Detalle: "+e.message:"")}).datosPagina();
 </script>
 </body>
 </html>
