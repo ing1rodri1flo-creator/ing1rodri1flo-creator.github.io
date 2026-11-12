@@ -390,10 +390,12 @@ footer{display:none}
 </main>
 <div class="pie"><div class="pin"><b>GAMEBOTS XIII</b><span>Torneo Internacional de Robótica · UPEA</span><span class="nums"><a href="https://wa.me/59176565483" target="_blank"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#fff" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7a11.7 11.7 0 01-4.5-4c-.3-.5-1-1.4-1-2.7s.7-1.9.9-2.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6a8.6 8.6 0 001.6 2 7.8 7.8 0 002.3 1.4c.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3a2.3 2.3 0 01-.2 1.2z"/></svg>76565483</a><a href="https://wa.me/59163093331" target="_blank"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#fff" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7a11.7 11.7 0 01-4.5-4c-.3-.5-1-1.4-1-2.7s.7-1.9.9-2.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6a8.6 8.6 0 001.6 2 7.8 7.8 0 002.3 1.4c.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3a2.3 2.3 0 01-.2 1.2z"/></svg>63093331</a></span><i>Innovación que inspira…</i></div></div>
 
-<script src="config.js"></script>
+<script src="config.js" onerror="void 0"></script>
 <script>
 /* Conexión con Google Apps Script (la hoja de inscripciones) */
 if(!window.google||!google.script){(function(){
+  var URL_FIJA="https://script.google.com/macros/s/AKfycbwvOiH9eWc9SkfuFnRsoKiy3OIeZsTwE9Ck44jONRkVk5xaNXQ8uFivAa8JBWkPw9X8QQ/exec";
+  if(!window.API_URL||String(window.API_URL).indexOf("script.google.com")<0||String(window.API_URL).indexOf("/exec")<0)window.API_URL=URL_FIJA;
   function llamar(fn,args,ok,fail){
     if(!window.API_URL||API_URL.indexOf("script.google.com")<0){fail&&fail(new Error("Falta configurar la dirección del servidor (config.js)."));return}
     fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn:fn,args:args})})
