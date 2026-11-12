@@ -264,6 +264,10 @@ footer{display:none}
 .hexi img{width:100%;height:100%;object-fit:cover;display:block}
 .hx:hover .hexi img{transform:scale(1.08);transition:.2s}
 @media (max-width:900px){.hexo{width:92px;height:103px}.hexi{width:84px;height:95px}}
+/* QR del paso de pago centrado */
+#bloqueBanco{grid-template-columns:1fr;justify-items:center;text-align:center;gap:12px}
+#bloqueBanco img{width:230px;height:230px}
+#bloqueBanco .kv{justify-content:center}
 </style>
 </head>
 <body>
@@ -336,7 +340,6 @@ footer{display:none}
       <div class="paso"><span class="n">4</span><h2>Pago de la inscripción</h2></div>
       <div class="metodos">
         <label class="tile"><input type="radio" name="metodo" value="QR / transferencia" checked><span class="ico">QR</span><span class="nom">QR o transferencia</span></label>
-        <label class="tile"><input type="radio" name="metodo" value="Depósito"><span class="ico">Bs</span><span class="nom">Depósito bancario</span></label>
         <label class="tile" id="tileEfectivo"><input type="radio" name="metodo" value="Efectivo el día"><span class="ico">27</span><span class="nom">Efectivo el día del evento<small class="pronto" id="efProx">Se habilita el 27 nov · 8:00</small></span></label>
       </div>
       <div class="msg aviso" id="avisoEfectivo" hidden role="status"><b>El pago en efectivo se habilitará el viernes 27 de noviembre a las 8:00.</b><br>Ese día la inscripción con pago en efectivo se hace en la <b>mesa de inscripción del evento</b>. Para inscribirte por esta página, paga con el QR.</div>
@@ -354,7 +357,7 @@ footer{display:none}
       <div class="msg aviso" id="bloqueEfectivo" hidden role="status"><b>Con pago en efectivo no puedes inscribirte por esta página.</b><br>Acércate a la <b>mesa de inscripción</b> en el Edificio Emblemático UPEA: ahí registras a tu equipo y pagas en efectivo. Si prefieres inscribirte ahora por aquí, elige pago con QR.</div>
       <div class="grid2" id="bloqueComp">
         <label class="f">N.º de comprobante o transacción <small>(lo encuentras en la captura del pago)</small><input type="text" id="ref" maxlength="40" autocomplete="off"></label>
-        <label class="f">Foto del comprobante de pago <small>(captura del QR, transferencia o depósito)</small><input type="file" id="comp" accept="image/*,application/pdf"></label>
+        <label class="f">Foto del comprobante de pago <small>(captura del pago con QR o transferencia)</small><input type="file" id="comp" accept="image/*,application/pdf"></label>
         <img id="compVista" alt="Vista previa del comprobante" hidden style="max-width:160px;max-height:200px;border-radius:8px;border:1px solid var(--line)">
       </div>
       <div class="monto" id="filaMonto"><span>Total a pagar</span><b id="monto">— Bs</b></div>
