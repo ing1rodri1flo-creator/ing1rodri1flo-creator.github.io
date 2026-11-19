@@ -21,7 +21,8 @@ nav button.on{background:#1e7bff;color:#fff}
 main{max-width:980px;margin:0 auto;padding:12px}
 h1{font-size:19px;margin:4px 0 2px}.sub{font-size:13px;color:var(--muted);margin:0 0 10px}
 input[type=search],input[type=text],input[type=tel],select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:15px;background:#fff}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+.tb{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:#8a5a00;background:#fff4d6;border-radius:99px;padding:1px 7px;vertical-align:middle}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0}
 .chips button{white-space:nowrap;padding:7px 12px;border-radius:99px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:#333}
 .chips button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
 .cnt{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin:2px 0 6px}
@@ -69,7 +70,7 @@ td{padding:7px 6px;border-bottom:1px solid #edf0f6;vertical-align:middle}
 .log{border-left:5px solid var(--azul)}
 .pin{font-family:Consolas,monospace;background:#f3f6fb;padding:3px 7px;border-radius:5px}
 .rol{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:#e7f0ff;color:var(--azul)}
-.rol.ACR{background:#fff4d6;color:#8a5a00}.rol.ADM{background:#f1e7ff;color:#5b2ab0}
+.rol.ACR{background:#fff4d6;color:#8a5a00}.rol.CER{background:#e3f7ec;color:#16703f}.rol.ADM{background:#f1e7ff;color:#5b2ab0}
 .off{opacity:.5}
 .ov{position:fixed;inset:0;background:rgba(7,20,51,.55);display:flex;align-items:flex-end;justify-content:center;z-index:20}
 .dlg{background:#fff;width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:18px 16px 22px;max-height:92vh;overflow:auto}
@@ -142,9 +143,9 @@ $('salir').onclick = () => { ss.del('gx_pin'); location.reload(); };
 function iniciar() {
   $('vLogin').hidden = true; $('app').hidden = false;
   $('yoNom').textContent = D.yo.nombre;
-  $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', JUEZ: 'Juez · Homologación' }[D.yo.rol] || D.yo.rol;
+  $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', 'HOMOLOGACIÓN': 'Homologación', CERTIFICADOS: 'Certificados' }[D.yo.rol] || D.yo.rol;
   const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cert', '📜 Certificados']]
-    : D.yo.rol === 'JUEZ' ? [['homol', '🔧 Homologación']] : [['acred', '🪪 Acreditación']];
+    : D.yo.rol === 'HOMOLOGACIÓN' ? [['homol', '🔧 Homologación']] : D.yo.rol === 'CERTIFICADOS' ? [['cert', '📜 Certificados']] : [['acred', '🪪 Acreditación']];
   $('nav').innerHTML = vistas.length > 1 ? vistas.map(v => `<button data-v="${v[0]}">${v[1]}</button>`).join('') : '';
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => ir(b.dataset.v));
   ir(ss.get('gx_vista') && vistas.some(v => v[0] === ss.get('gx_vista')) ? ss.get('gx_vista') : vistas[0][0]);
@@ -328,7 +329,7 @@ function dlgHomol(cod) {
 
 /* ---------- USUARIOS (admin) ---------- */
 function vUsuarios() {
-  const rc = r => r === 'ADMINISTRADOR' ? 'ADM' : r === 'ACREDITACIÓN' ? 'ACR' : '';
+  const rc = r => r === 'ADMINISTRADOR' ? 'ADM' : r === 'ACREDITACIÓN' ? 'ACR' : r === 'CERTIFICADOS' ? 'CER' : '';
   $('main').innerHTML = `<h1>Usuarios y PIN</h1><p class="sub">Toca una persona para cambiar su PIN, rol o categorías. Desactívala para quitarle el acceso.</p>
    <div class="box"><div style="display:flex;align-items:center;margin-bottom:6px"><h2 style="margin:0">Usuarios</h2><button class="b" id="nuevo" style="margin-left:auto;border:0;color:#fff;border-radius:8px;padding:8px 12px;font-weight:700">+ Nuevo usuario</button></div>
    <table><tr><th>Nombre</th><th>PIN</th><th>Rol</th><th>Categorías</th></tr>
@@ -342,13 +343,13 @@ function dlgUsuario(u) {
   const ov = document.createElement('div'); ov.className = 'ov';
   ov.innerHTML = `<div class="dlg"><h3>${u ? 'Modificar usuario' : 'Nuevo usuario'}</h3>
     <label class="fl">Nombre<input id="uN" type="text" value="${esc(u ? u.nombre : '')}" placeholder="Ej.: Ing. Nacho"></label>
-    <label class="fl">Rol<select id="uR">${['JUEZ', 'ACREDITACIÓN', 'ADMINISTRADOR'].map(r => `<option ${u && u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
-    <div class="fl" id="uCw">Categorías del juez<div class="cats">${CATS.map(c => `<label><input type="checkbox" value="${c.cod}" ${sel.indexOf(c.cod) >= 0 ? 'checked' : ''}>${c.cod} ${esc(c.nombre)}</label>`).join('')}</div></div>
+    <label class="fl">Rol<select id="uR">${['HOMOLOGACIÓN', 'ACREDITACIÓN', 'CERTIFICADOS', 'ADMINISTRADOR'].map(r => `<option ${u && u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
+    <div class="fl" id="uCw">Categorías que homologa <a href="#" id="uTodas" style="float:right;font-weight:700">Marcar todas</a><div class="cats">${CATS.map(c => `<label><input type="checkbox" value="${c.cod}" ${sel.indexOf(c.cod) >= 0 ? 'checked' : ''}>${c.cod} ${esc(c.nombre)}</label>`).join('')}</div></div>
     <label class="fl">PIN (vacío = se genera solo)<input id="uP" type="tel" inputmode="numeric" maxlength="8" value="${esc(u ? u.pin : '')}"></label>
     ${u ? `<label class="opt"><input type="checkbox" id="uA" ${u.activo ? 'checked' : ''}><div><b>Activo</b><small>Desmárcalo para quitarle el acceso</small></div></label>` : ''}
     <div class="bt"><button class="gr" id="uC">Cancelar</button><button class="b" id="uG">Guardar</button></div></div>`;
   document.body.appendChild(ov);
-  const vis = () => ov.querySelector('#uCw').hidden = ov.querySelector('#uR').value !== 'JUEZ'; vis(); ov.querySelector('#uR').onchange = vis;
+  const vis = () => ov.querySelector('#uCw').hidden = ov.querySelector('#uR').value !== 'HOMOLOGACIÓN'; vis(); ov.querySelector('#uR').onchange = vis; ov.querySelector('#uTodas').onclick = ev => { ev.preventDefault(); const cb = [...ov.querySelectorAll('#uCw input')], t = cb.some(x => !x.checked); cb.forEach(x => x.checked = t); };
   ov.querySelector('#uC').onclick = () => ov.remove();
   ov.querySelector('#uG').onclick = () => {
     const b = ov.querySelector('#uG'); b.disabled = true;
@@ -358,16 +359,19 @@ function dlgUsuario(u) {
   };
 }
 
-/* ---------- CERTIFICADOS DE PARTICIPACIÓN (admin) ---------- */
-let LISTA_CERT = null;
+/* ---------- CERTIFICADOS: participación y podios ---------- */
+let CERT = null, CSEG = 'part';
+const PUESTO = { 1: 'PRIMER LUGAR', 2: 'SEGUNDO LUGAR', 3: 'TERCER LUGAR' }, MED = { 1: '🥇', 2: '🥈', 3: '🥉' };
 function vCert() {
   const m = $('main');
-  m.innerHTML = `<h1>Certificados de participación</h1><p class="sub">Para los concursantes <b>acreditados</b>, con el diseño del torneo. Un certificado por persona, en un solo PDF.</p>
-    <div class="box" id="cbox"><div class="vacio">Cargando lista…</div></div>`;
-  api('pCertificados', PIN).then(l => { LISTA_CERT = l; pintaCert(); }).catch(e => $('cbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
+  m.innerHTML = `<h1>Certificados</h1><p class="sub">Participación para todos los concursantes <b>acreditados</b> y certificados del <b>podio</b> (1.º, 2.º y 3.º) por categoría.</p>
+    <div class="seg"><button data-s="part">📜 Participación</button><button data-s="podio">🏆 Podios</button></div>
+    <div class="box" id="cbox"><div class="vacio">Cargando…</div></div>`;
+  m.querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.s === CSEG); b.onclick = () => { CSEG = b.dataset.s; vCert(); }; });
+  api('pCertificados', PIN).then(r => { CERT = r; CSEG === 'part' ? pintaCert() : pintaPodio(); }).catch(e => $('cbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
 }
 function pintaCert() {
-  const l = LISTA_CERT;
+  const l = CERT.participantes;
   $('cbox').innerHTML = `<p style="margin:0 0 10px"><b>${l.length}</b> concursantes acreditados.</p>
     <div class="bt" style="flex-wrap:wrap"><button class="a" id="cTodo" ${l.length ? '' : 'disabled'}>⬇ Todo el torneo (${l.length})</button></div>
     <div class="fl" style="margin-top:12px">Por categoría<select id="cCat"><option value="">— elige —</option>${D.categorias.map(c => { const n = l.filter(x => x.cat === c.cod).length; return `<option value="${c.cod}" ${n ? '' : 'disabled'}>${c.cod} ${esc(c.nombre)} (${n})</option>`; }).join('')}</select></div>
@@ -375,8 +379,44 @@ function pintaCert() {
   $('cTodo').onclick = () => generar(l, 'Certificados_GAMEBOTS_XIII_todos');
   $('cCat').onchange = e => { const c = e.target.value; if (c) generar(l.filter(x => x.cat === c), 'Certificados_GAMEBOTS_XIII_' + c); };
   $('q').oninput = () => { const q = norm($('q').value);
-    $('lista').innerHTML = q.length < 2 ? '' : l.filter(x => norm(x.nombre).indexOf(q) >= 0).slice(0, 15).map((x, i) => `<div class="it"><span class="nm">${esc(x.nombre)}<small>${x.cat} · ${esc(x.equipo)}</small></span><button class="cp" data-i="${l.indexOf(x)}">⬇ PDF</button></div>`).join('');
+    $('lista').innerHTML = q.length < 2 ? '' : l.filter(x => norm(x.nombre).indexOf(q) >= 0).slice(0, 15).map(x => `<div class="it"><span class="nm">${esc(x.nombre)}<small>${x.cat} · ${esc(x.equipo)}</small></span><button class="cp" data-i="${l.indexOf(x)}">⬇ PDF</button></div>`).join('');
     $('lista').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const x = l[b.dataset.i]; generar([x], 'Certificado_' + x.nombre.replace(/\s+/g, '_')); }); };
+}
+/* personas del podio con su puesto, listas para el PDF */
+function ganadores(cat) {
+  return CERT.podio.filter(r => !cat || r.cat === cat).sort((a, b) => a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : a.puesto - b.puesto)
+    .reduce((o, r) => o.concat(r.personas.map(x => Object.assign({}, x, { puesto: r.puesto }))), []);
+}
+function pintaPodio() {
+  const P = CERT.podio, tot = ganadores().length;
+  $('cbox').innerHTML = `<p style="margin:0 0 10px">Elige el equipo de cada puesto según el acta de los jueces. ${D.yo.admin ? 'Como administrador puedes cambiar un puesto ya registrado (con motivo).' : 'Una vez guardado, solo el administrador puede cambiarlo.'}</p>
+    <div class="bt" style="flex-wrap:wrap"><button class="a" id="pTodo" ${tot ? '' : 'disabled'}>⬇ Todos los podios (${tot})</button></div>
+    ${D.categorias.map(c => {
+      const eqs = CERT.equipos.filter(e => e.cat === c.cod), n = ganadores(c.cod).length;
+      return `<div class="box" style="margin-top:12px"><h2>${c.cod} · ${esc(c.nombre)} <small style="font-weight:500;color:#666">(${c.nivel})</small></h2>
+        ${!eqs.length ? '<div class="vacio" style="padding:6px 0">Aún no hay equipos acreditados.</div>' : [1, 2, 3].map(pu => {
+          const r = P.find(x => x.cat === c.cod && x.puesto === pu), bloq = r && !D.yo.admin;
+          return `<div class="fl" style="margin:6px 0">${MED[pu]} ${PUESTO[pu]}${r ? ` <small style="color:#666">· registró ${esc(r.por)}</small>` : ''}
+            <select data-cat="${c.cod}" data-pu="${pu}" data-ant="${r ? r.codigo : ''}" ${bloq ? 'disabled' : ''}><option value="">— sin registrar —</option>
+            ${eqs.map(e => `<option value="${e.codigo}" ${r && r.codigo === e.codigo ? 'selected' : ''}>${esc(e.equipo)} · “${esc(e.robot)}” (${e.personas.length} pers.)</option>`).join('')}</select></div>`;
+        }).join('')}
+        ${n ? `<div class="bt"><button class="cp" data-pc="${c.cod}">⬇ Certificados del podio ${c.cod} (${n})</button></div>` : ''}</div>`;
+    }).join('')}`;
+  $('pTodo').onclick = () => generar(ganadores(), 'Certificados_PODIOS_GAMEBOTS_XIII');
+  $('cbox').querySelectorAll('[data-pc]').forEach(b => b.onclick = () => generar(ganadores(b.dataset.pc), 'Certificados_PODIO_' + b.dataset.pc));
+  $('cbox').querySelectorAll('select[data-pu]').forEach(sel => sel.onchange = () => {
+    const cat = sel.dataset.cat, pu = +sel.dataset.pu, cod = sel.value, ant = sel.dataset.ant;
+    const volver = () => { sel.value = ant; };
+    if (!cod && !ant) return;
+    if (ant) {
+      const eq = CERT.equipos.find(e => e.codigo === cod);
+      dialogo(`<h3>Cambiar ${PUESTO[pu]} · ${cat}</h3><p>${cod ? `Pasará a <b>${esc(eq.equipo)}</b>.` : 'El puesto quedará <b>sin registrar</b>.'} Queda en el historial.</p>`,
+        mo => api('pGuardarPodio', PIN, cat, pu, cod, mo).then(() => toast('Podio actualizado')));
+      volver(); return;
+    }
+    sel.disabled = true;
+    api('pGuardarPodio', PIN, cat, pu, cod, '').then(() => { toast(MED[pu] + ' Guardado'); vCert(); }).catch(e => { toast(e.message, true); volver(); sel.disabled = false; });
+  });
 }
 
 /* Diseño: fondo de 1536 × 1024 px; el PDF sale en 30 × 20 cm (imprime en carta con "Ajustar"). */
@@ -403,9 +443,9 @@ function generar(lista, nombreArchivo) {
       doc.setTextColor(12, 33, 84); doc.text(x.nombre, 960 * k, 500 * k, { align: 'center' });
       // cinta
       doc.setFont('MI', 'normal'); doc.setFontSize(52 * k); doc.setTextColor(12, 33, 84);
-      doc.text('PARTICIPACIÓN', 990 * k, 607 * k, { align: 'center' });
+      doc.text(x.puesto ? PUESTO[x.puesto] : 'PARTICIPACIÓN', 990 * k, 607 * k, { align: 'center' });
       // texto
-      const segs = [['Por su participación en la categoría', 0], [x.cat + ' · ' + x.catNombre + (x.nivel ? ' (' + x.nivel + ')' : '') + ',', 1], ['con el robot', 0], ['“' + x.robot + '”', 1], ['del equipo', 0], ['“' + x.equipo + '”,', 1],
+      const segs = [[x.puesto ? 'Por obtener el ' + PUESTO[x.puesto] + ' en la categoría' : 'Por su participación en la categoría', 0], [x.cat + ' · ' + x.catNombre + (x.nivel ? ' (' + x.nivel + ')' : '') + ',', 1], ['con el robot', 0], ['“' + x.robot + '”', 1], ['del equipo', 0], ['“' + x.equipo + '”,', 1],
         ['en el Torneo Internacional de Robótica', 0], ['“GAMEBOTS XIII”,', 1], ['organizado por la Carrera de Ingeniería Electrónica de la Universidad Pública de El Alto.', 0]];
       parrafo(doc, segs, 975 * k, 678 * k, 930 * k, 31 * k, 23 * k);
       doc.setFont('M', 'bold'); doc.setFontSize(18 * k); doc.setTextColor(255, 255, 255);
