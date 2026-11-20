@@ -36,6 +36,10 @@ h3.cat{margin:14px 2px 6px;font-size:12.5px;letter-spacing:.08em;color:var(--azu
 .tag.VER{background:#e3f4ed;color:var(--ok)}.tag.OBS{background:#fdecea;color:var(--bad)}.tag.PEN{background:#fff4d6;color:#8a5a00}
 .card.VER{border-left:5px solid var(--ok)}.card.OBS{border-left:5px solid var(--bad)}.card.PEN{border-left:5px solid #e0a100}
 .dat{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:13.5px;margin:10px 0 4px}.dat span{color:#666}
+.rec summary{font-weight:800;cursor:pointer;color:var(--azul)}.rec[open] summary{margin-bottom:10px}.trec td.nn,.trec th{text-align:right}.trec td,.trec th{padding:7px 6px}.trec th:first-child{text-align:left}.trec tr.tot td{font-weight:900;border-top:2px solid #141a2e;background:#f3f6fb}
+.tag.EFE{background:#dff5f5;color:#0f6b6b;margin-right:4px}.tag.CUP{background:#efe6ff;color:#5b2bb5;margin-right:4px}
+.cupf{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:end}@media(max-width:560px){.cupf{grid-template-columns:1fr 90px}.cupf button{grid-column:1/-1}}
+.cupt td{vertical-align:middle}.cupt code{font-weight:800;font-size:14px;letter-spacing:.04em}.est{font-size:11px;font-weight:800;padding:3px 7px;border-radius:99px}.est.LIBRE{background:#e3f4ed;color:var(--ok)}.est.USADO{background:#e8eefc;color:var(--azul)}.est.BAJA{background:#fdecea;color:var(--bad)}
 .compv{margin-top:10px;text-align:center}.compv img{max-width:100%;max-height:70vh;border-radius:8px;border:1px solid var(--line)}
 .cp{font-size:12px;border:1px solid var(--line);background:#f6f8fc;border-radius:6px;padding:7px 9px;color:#333}
 .ck{width:34px;height:34px;border-radius:8px;border:2px solid #9aa7bd;background:#fff;display:grid;place-items:center;font-size:20px;color:#fff;flex:none;padding:0}
@@ -57,7 +61,8 @@ h3.cat{margin:14px 2px 6px;font-size:12.5px;letter-spacing:.08em;color:var(--azu
 .chk input{width:24px;height:24px;flex:none;accent-color:var(--ok)}
 .bt{display:flex;gap:8px;margin-top:8px}
 .bt button{flex:1;padding:12px;border-radius:8px;font-weight:800;color:#fff;font-size:15px;border:0}
-.a{background:var(--ok)}.n{background:var(--bad)}.w{background:var(--nar)}.b{background:var(--azul)}.gr{background:#eef0f4!important;color:#333!important}
+.a{background:var(--ok)}.v{background:#6b35c9}.e{background:#0f7d7d}
+.bt.b4{flex-wrap:wrap}.bt.b4 button{flex:1 1 40%;min-width:120px}.n{background:var(--bad)}.w{background:var(--nar)}.b{background:var(--azul)}.gr{background:#eef0f4!important;color:#333!important}
 .box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
 .box h2{margin:0 0 8px;font-size:16px}
 .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 12px}
@@ -149,7 +154,7 @@ function iniciar() {
   $('vLogin').hidden = true; $('app').hidden = false;
   $('yoNom').textContent = D.yo.nombre;
   $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', 'HOMOLOGACIÓN': 'Homologación', CERTIFICADOS: 'Certificados', 'INSCRIPCIÓN': 'Inscripción' }[D.yo.rol] || D.yo.rol;
-  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cert', '📜 Certificados']]
+  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cupones', '🎟 Cupones'], ['cert', '📜 Certificados']]
     : D.yo.rol === 'HOMOLOGACIÓN' ? [['homol', '🔧 Homologación']] : D.yo.rol === 'CERTIFICADOS' ? [['cert', '📜 Certificados']] : D.yo.rol === 'INSCRIPCIÓN' ? [['inscr', '📝 Inscripción']] : [['acred', '🪪 Acreditación']];
   $('nav').innerHTML = vistas.length > 1 ? vistas.map(v => `<button data-v="${v[0]}">${v[1]}</button>`).join('') : '';
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => ir(b.dataset.v));
@@ -161,7 +166,7 @@ function ir(v) { VISTA = v; ss.set('gx_vista', v); F = { q: '', cat: '' }; ABIER
 function recargar() { return api('pDatos', PIN).then(d => { D = d; pintar(true); }).catch(e => { if (/PIN/.test(e.message)) { ss.del('gx_pin'); location.reload(); } }); }
 function pintar(suave) {
   const y = window.scrollY, foco = document.activeElement && document.activeElement.id;
-  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cert: vCert })[VISTA]();
+  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cupones: vCupones, cert: vCert })[VISTA]();
   if (suave) { window.scrollTo(0, y); if (foco && $(foco)) { const el = $(foco); el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); } }
 }
 const catNom = c => { const x = D.categorias.find(k => k.cod === c); return x ? x.nombre : c; };
@@ -227,8 +232,10 @@ function vInscr() {
 }
 function pintaInscr() {
   const l = INS, c = { PEN: 0, OBS: 0, VER: 0 }; l.forEach(x => c[estPago(x)]++);
-  const bs = l.filter(x => x.pago).reduce((a, x) => a + (Number(x.costo) || 0), 0);
-  $('iz').innerHTML = `<div class="res"><div><b style="color:#8a5a00">${c.PEN}</b>Por verificar</div><div><b class="r">${c.OBS}</b>Observados</div><div><b class="g">${c.VER}</b>Verificados</div><div><b>${bs}</b>Bs recaudado</div></div>
+  const bs = l.filter(x => x.pago && !x.cupon).reduce((a, x) => a + (Number(x.costo) || 0), 0);
+  $('iz').innerHTML = `<div class="res"><div><b style="color:#8a5a00">${c.PEN}</b>Por verificar</div><div><b class="r">${c.OBS}</b>Observados</div><div><b class="g">${c.VER}</b>Verificados</div><div><b>${bs.toLocaleString('es-BO')}</b>Bs recaudado</div></div>
+    <div class="bt" style="margin:0 0 10px"><button class="e" id="nuevaEf">➕ Inscribir equipo en mesa (paga en efectivo)</button></div>
+    <details class="box rec"><summary>💰 Recaudación por categoría</summary>${tablaRec(l)}</details>
     <div class="seg"><button data-s="PEN">Por verificar</button><button data-s="OBS">Observados</button><button data-s="VER">Verificados</button><button data-s="">Todos</button></div>
     <input id="q" type="search" placeholder="🔎 Buscar equipo, robot, participante o N.º de comprobante…" value="${esc(F.q)}">
     ${chips(D.categorias, 'Todas')}<div id="lista"></div>`;
@@ -239,23 +246,39 @@ function pintaInscr() {
       (!q || norm([x.codigo, x.equipo, x.robot, x.p.join(' '), x.tutor, x.inst, x.ref, x.cel].join(' ')).indexOf(q) >= 0));
     $('lista').innerHTML = xs.map(x => {
       const k = estPago(x), ab = ABIERTO === x.codigo;
-      return `<div class="card ${k} ${ab ? 'open' : ''}" data-cod="${x.codigo}"><div class="h"><span class="eq">${esc(x.equipo)} · “${esc(x.robot)}”<small>${x.cat} ${esc(x.catNombre)} · ${esc(x.codigo)} · ${esc(x.fecha)}</small></span><span class="tag ${k}">${EST_TXT[k]}</span></div>
+      return `<div class="card ${k} ${ab ? 'open' : ''}" data-cod="${x.codigo}"><div class="h"><span class="eq">${esc(x.equipo)} · “${esc(x.robot)}”<small>${x.cat} ${esc(x.catNombre)} · ${esc(x.codigo)} · ${esc(x.fecha)}</small></span>${x.cupon ? '<span class="tag CUP">🎟 CUPÓN</span>' : x.metodo === 'Efectivo el día' ? '<span class="tag EFE">💵 EFECTIVO</span>' : ''}<span class="tag ${k}">${x.cupon && k === 'VER' ? 'VERIFICADO' : EST_TXT[k]}</span></div>
         ${k === 'OBS' ? `<div class="obs">${esc(x.obs)}</div>` : ''}
         ${ab ? `<div class="dat"><span>Participantes</span><b>${x.p.map(esc).join('<br>')}</b><span>Tutor</span><b>${esc(x.tutor) || '—'}</b><span>Institución</span><b>${esc(x.inst) || '—'}</b>
           <span>Celular</span><b>${x.cel ? `<a href="https://wa.me/591${esc(x.cel.replace(/\D/g, '').slice(-8))}" target="_blank" rel="noopener">${esc(x.cel)}</a>` : '—'}</b>
-          <span>Pago</span><b>${esc(x.metodo)} · ${esc(String(x.costo))} Bs</b><span>N.º comprobante</span><b>${esc(x.ref) || '—'}</b></div>
-          <div class="bt">${x.comp ? `<button class="b" data-ver>🧾 Ver comprobante</button>` : '<div class="obs">Sin comprobante adjunto.</div>'}</div><div class="compv" id="cv_${x.codigo}"></div>
-          ${!x.pago ? `<div class="bt"><button class="a" data-pago="1">✓ PAGO VERIFICADO</button><button class="w" data-pago="0">⚠ OBSERVAR</button></div>`
+          ${x.cupon ? `<span>Pago</span><b>🎟 Cupón ${esc(x.cupon.codigo)} (gratuito)</b><span>Docente</span><b>${esc(x.cupon.docente)}</b>` : x.metodo === 'Efectivo el día' ? `<span>Pago</span><b>💵 Efectivo · ${esc(String(x.costo))} Bs</b>` : `<span>Pago</span><b>${esc(x.metodo)} · ${esc(String(x.costo))} Bs</b><span>N.º comprobante</span><b>${esc(x.ref) || '—'}</b>`}</div>
+          <div class="bt">${x.comp ? `<button class="b" data-ver>🧾 Ver ${x.cupon ? 'imagen del cupón' : 'comprobante'}</button>` : x.metodo === 'Efectivo el día' ? '' : '<div class="obs">Sin comprobante adjunto.</div>'}</div><div class="compv" id="cv_${x.codigo}"></div>
+          ${!x.pago ? (x.metodo === 'Efectivo el día' && !x.cupon ? `<div class="bt"><button class="e" data-efec>💵 RECIBÍ EL EFECTIVO</button>` : `<div class="bt b4"><button class="a" data-pago="1">✓ ${x.cupon ? 'CUPÓN VÁLIDO' : 'PAGO VERIFICADO'}</button>${x.cupon ? '' : '<button class="v" data-cupon>🎟 CUPÓN</button><button class="e" data-efec>💵 EFECTIVO</button>'}`) + `<button class="w" data-pago="0">⚠ OBSERVAR</button></div>`
             : D.yo.admin ? `<div class="bt"><button class="gr" data-pago="0">Quitar verificación</button></div>` : '<div class="obs" style="color:#555">Pago verificado. Si hay un error, avisa al administrador.</div>'}
           <div class="bt"><button class="gr" data-anular style="color:var(--bad)!important">🗑 Anular inscripción</button></div>` : ''}</div>`;
     }).join('') || '<div class="vacio">No hay inscripciones aquí.</div>';
     $('lista').querySelectorAll('.card .h').forEach(h => h.onclick = () => { const cod = h.parentNode.dataset.cod; ABIERTO = ABIERTO === cod ? '' : cod; lista(); });
     $('lista').querySelectorAll('[data-ver]').forEach(b => b.onclick = () => verComp(b, b.closest('.card').dataset.cod));
     $('lista').querySelectorAll('[data-pago]').forEach(b => b.onclick = () => pagar(b.closest('.card').dataset.cod, b.dataset.pago === '1'));
+    $('lista').querySelectorAll('[data-efec]').forEach(b => b.onclick = () => efectivo(b.closest('.card').dataset.cod));
+    $('lista').querySelectorAll('[data-cupon]').forEach(b => b.onclick = () => cuponManual(b.closest('.card').dataset.cod));
     $('lista').querySelectorAll('[data-anular]').forEach(b => b.onclick = () => anular(b.closest('.card').dataset.cod));
   };
+  $('nuevaEf').onclick = nuevaEfectivo;
   lista(); enlazarFiltros(lista);
   document.querySelectorAll('#iz .chips button').forEach(b => b.onclick = () => { F.cat = b.dataset.c; pintaInscr(); });
+}
+function tablaRec(l) {
+  const bs = n => (Math.round(n * 100) / 100).toLocaleString('es-BO') + ' Bs', ef = x => x.metodo === 'Efectivo el día', suma = a => a.reduce((t, x) => t + (Number(x.costo) || 0), 0);
+  const T = { n: 0, cu: 0, qr: 0, ef: 0, mp: 0 };
+  const filas = D.categorias.map(c => {
+    const xs = l.filter(x => x.cat === c.cod), pg = xs.filter(x => !x.cupon), v = pg.filter(x => x.pago);
+    const r = { n: xs.length, cu: xs.length - pg.length, qr: suma(v.filter(x => !ef(x))), ef: suma(v.filter(ef)), mp: suma(pg.filter(x => !x.pago)) };
+    Object.keys(T).forEach(k => T[k] += r[k]);
+    return `<tr><td>${c.cod} ${esc(c.nombre)}</td><td class="nn">${r.n}</td><td class="nn">${r.cu}</td><td class="nn">${bs(r.qr)}</td><td class="nn">${bs(r.ef)}</td><td class="nn"><b>${bs(r.qr + r.ef)}</b></td><td class="nn">${bs(r.mp)}</td></tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><table class="trec"><tr><th>Categoría</th><th>Equipos</th><th>Con cupón</th><th>QR</th><th>Efectivo</th><th>Recaudado</th><th>Por verificar</th></tr>${filas}
+    <tr class="tot"><td>TOTAL</td><td class="nn">${T.n}</td><td class="nn">${T.cu}</td><td class="nn">${bs(T.qr)}</td><td class="nn">${bs(T.ef)}</td><td class="nn">${bs(T.qr + T.ef)}</td><td class="nn">${bs(T.mp)}</td></tr></table></div>
+    <p class="sub" style="margin:8px 0 0"><b>Recaudado</b> = QR verificado + efectivo cobrado. <b>Por verificar</b> = pagos pendientes u observados (aún no confirmados). Los equipos <b>con cupón</b> son gratuitos y no suman dinero.</p>`;
 }
 function verComp(b, cod) {
   const box = $('cv_' + cod); b.disabled = true; b.textContent = 'Cargando…';
@@ -272,7 +295,7 @@ function pagar(cod, ok) {
   const x = INS.find(i => i.codigo === cod);
   if (ok) {
     const ov = document.createElement('div'); ov.className = 'ov';
-    ov.innerHTML = `<div class="dlg"><h3>Confirmar pago</h3><p><b>${esc(x.equipo)}</b> (${x.cat}) · ${esc(String(x.costo))} Bs · comprobante N.º <b>${esc(x.ref) || '—'}</b>.<br>¿El pago llegó correctamente?</p>
+    ov.innerHTML = `<div class="dlg"><h3>${x.cupon ? 'Confirmar cupón' : 'Confirmar pago'}</h3><p>${x.cupon ? `<b>${esc(x.equipo)}</b> (${x.cat}) · cupón <b>${esc(x.cupon.codigo)}</b> de ${esc(x.cupon.docente)}.<br>¿La imagen del cupón coincide con el código?` : `<b>${esc(x.equipo)}</b> (${x.cat}) · ${esc(String(x.costo))} Bs · comprobante N.º <b>${esc(x.ref) || '—'}</b>.<br>¿El pago llegó correctamente?`}</p>
       <div class="bt"><button class="gr" id="dCan">Cancelar</button><button class="a" id="dOk">✓ Sí, verificado</button></div></div>`;
     document.body.appendChild(ov);
     ov.querySelector('#dCan').onclick = () => ov.remove(); ov.onclick = e => { if (e.target === ov) ov.remove(); };
@@ -284,10 +307,153 @@ function pagar(cod, ok) {
   dialogo(`<h3>${x.pago ? 'Quitar verificación' : 'Observar pago'}</h3><p><b>${esc(x.equipo)}</b> (${x.cat}). Escribe qué está mal (por ejemplo: monto incompleto, no llegó la transferencia).</p>`,
     mo => api('pVerificarPago', PIN, cod, false, mo).then(() => { ABIERTO = ''; toast('Pago observado'); return recInscr(); }));
 }
+function efectivo(cod) {
+  const x = INS.find(i => i.codigo === cod);
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="dlg"><h3>💵 Pago en efectivo</h3><p><b>${esc(x.equipo)}</b> (${x.cat} ${esc(x.catNombre)}). Confirma que recibiste <b style="font-size:18px">${esc(String((D.categorias.find(c => c.cod === x.cat) || {}).costo || x.costo))} Bs</b> en efectivo. El equipo quedará verificado y podrá acreditarse.</p>
+    <div class="bt"><button class="gr" id="dCan">Cancelar</button><button class="e" id="dOk">💵 Recibí el efectivo</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#dCan').onclick = () => ov.remove(); ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.querySelector('#dOk').onclick = () => { const b = ov.querySelector('#dOk'); b.disabled = true; b.textContent = 'Guardando…';
+    api('pVerificarEfectivo', PIN, cod, '').then(r => { ov.remove(); ABIERTO = ''; toast('Efectivo registrado: ' + r.monto + ' Bs'); recInscr(); })
+      .catch(e => { toast(e.message, true); b.disabled = false; b.textContent = '💵 Recibí el efectivo'; }); };
+}
+function nuevaEfectivo() {
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="dlg" style="max-height:92vh;overflow:auto"><h3>➕ Inscribir equipo en mesa</h3><p>Para equipos que se inscriben en la mesa y pagan en <b>efectivo</b>. Queda <b>por verificar</b>; cuando pague, toca <b>💵 EFECTIVO</b> en su tarjeta.</p>
+    <label class="fl">Categoría<select id="nCat"><option value="">— elige —</option>${D.categorias.map(c => `<option value="${c.cod}">${c.cod} ${esc(c.nombre)} · ${c.costo} Bs</option>`).join('')}</select></label>
+    <label class="fl">Nombre del equipo<input id="nEq" type="text" maxlength="60"></label>
+    <label class="fl">Nombre del robot<input id="nRo" type="text" maxlength="60"></label>
+    <label class="fl">Participante 1<input id="nP1" type="text" maxlength="80"></label>
+    <label class="fl">Participante 2 (opcional)<input id="nP2" type="text" maxlength="80"></label>
+    <label class="fl">Institución / club<input id="nIn" type="text" maxlength="80"></label>
+    <label class="fl">Tutor (opcional)<input id="nTu" type="text" maxlength="80"></label>
+    <label class="fl">Celular<input id="nCe" type="tel" maxlength="20"></label>
+    <div class="monto" style="font-weight:800;margin:6px 0">Costo: <span id="nMo" style="font-size:20px">— Bs</span></div>
+    <div class="bt"><button class="gr" id="dCan">Cancelar</button><button class="e" id="dOk">➕ Inscribir</button></div></div>`;
+  document.body.appendChild(ov);
+  const q = id => ov.querySelector('#' + id);
+  q('nCat').onchange = () => { const c = D.categorias.find(c => c.cod === q('nCat').value); q('nMo').textContent = c ? c.costo + ' Bs' : '— Bs'; };
+  q('dCan').onclick = () => ov.remove();
+  q('dOk').onclick = () => { const b = q('dOk'); b.disabled = true; b.textContent = 'Guardando…';
+    api('pInscribirEfectivo', PIN, { cat: q('nCat').value, equipo: q('nEq').value, robot: q('nRo').value, p1: q('nP1').value, p2: q('nP2').value, inst: q('nIn').value, tutor: q('nTu').value, cel: q('nCe').value })
+      .then(r => { ov.remove(); toast('Inscrito ' + r.codigo + '. Cuando pague ' + r.monto + ' Bs, toca 💵 EFECTIVO'); recInscr(); recargar(); })
+      .catch(e => { toast(e.message, true); b.disabled = false; b.textContent = '➕ Inscribir'; }); };
+}
+function cuponManual(cod) {
+  const x = INS.find(i => i.codigo === cod);
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="dlg"><h3>🎟 Inscripción con cupón</h3><p><b>${esc(x.equipo)}</b> (${x.cat}). Si el comprobante es la <b>imagen de un cupón</b>, escribe el código que aparece en ella. El equipo quedará verificado y <b>no se contará en el dinero recaudado</b>.</p>
+    <input id="cupCod" type="text" maxlength="20" placeholder="CUP-XXXXXX" value="${/^CUP/i.test(x.ref) ? esc(x.ref) : ''}" style="text-transform:uppercase">
+    <div class="bt"><button class="gr" id="dCan">Cancelar</button><button class="v" id="dOk">🎟 Verificar cupón</button></div></div>`;
+  document.body.appendChild(ov); ov.querySelector('#cupCod').focus();
+  ov.querySelector('#dCan').onclick = () => ov.remove(); ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.querySelector('#dOk').onclick = () => { const b = ov.querySelector('#dOk'); b.disabled = true; b.textContent = 'Guardando…';
+    api('pVerificarCupon', PIN, cod, ov.querySelector('#cupCod').value).then(r => { ov.remove(); ABIERTO = ''; toast('Cupón verificado (' + r.docente + ')'); recInscr(); })
+      .catch(e => { toast(e.message, true); b.disabled = false; b.textContent = '🎟 Verificar cupón'; }); };
+}
 function anular(cod) {
   const x = INS.find(i => i.codigo === cod);
   dialogo(`<h3>Anular inscripción</h3><p><b>${esc(x.equipo)} · “${esc(x.robot)}”</b> (${x.cat} · ${esc(x.codigo)}) saldrá de la lista. Queda guardada en “Anuladas (respaldo)” y el administrador puede restaurarla.</p>`,
     mo => api('pAnular', PIN, cod, mo).then(() => { ABIERTO = ''; toast('Inscripción anulada'); return recInscr(); }));
+}
+
+/* ---------- CUPONES (admin) ---------- */
+let CUP = [];
+function vCupones() {
+  const m = $('main');
+  m.innerHTML = `<h1>Cupones</h1><p class="sub">Cada cupón da <b>una inscripción gratuita</b> a un solo equipo. El docente entrega la <b>imagen del cupón</b>; al inscribirse, el equipo escribe el código en <b>“N.º de comprobante o transacción”</b> y sube la imagen del cupón en lugar de la foto de la transferencia. La Lic. de Inscripción lo revisa.</p>
+    <div class="box"><h2>Crear cupones</h2><div class="cupf"><label class="fl" style="margin:0">Docente<input id="cDoc" type="text" maxlength="80" placeholder="Ej.: Ing. Juan Pérez"></label>
+      <label class="fl" style="margin:0">Cantidad<input id="cCan" type="text" inputmode="numeric" value="1"></label><button class="a" id="cCrear" style="padding:11px 16px">+ Crear</button></div></div>
+    <div id="cz"><div class="vacio">Cargando…</div></div>`;
+  $('cCrear').onclick = () => {
+    const b = $('cCrear'); b.disabled = true;
+    api('pCrearCupones', PIN, $('cDoc').value, $('cCan').value).then(l => { toast(l.length + ' cupón(es) creado(s)'); $('cDoc').value = ''; $('cCan').value = '1'; cargarCup(); })
+      .catch(e => toast(e.message, true)).finally(() => b.disabled = false);
+  };
+  cargarCup();
+}
+function cargarCup() { api('pCupones', PIN).then(l => { CUP = l; pintaCup(); }).catch(e => $('cz').innerHTML = `<div class="vacio">${esc(e.message)}</div>`); }
+function pintaCup() {
+  const n = e => CUP.filter(c => c.estado === e).length;
+  const docs = [...new Set(CUP.map(c => c.docente))];
+  $('cz').innerHTML = `<div class="res"><div><b>${CUP.length}</b>Cupones</div><div><b class="g">${n('LIBRE')}</b>Libres</div><div><b style="color:var(--azul)">${n('USADO')}</b>Usados</div><div><b class="r">${n('DE BAJA')}</b>De baja</div></div>
+    ${!CUP.length ? '<div class="vacio">Aún no hay cupones.</div>' : docs.map(d => { const cs = CUP.filter(c => c.docente === d), lib = cs.filter(c => c.estado === 'LIBRE');
+      return `<div class="box"><h2>${esc(d)} <small style="font-weight:500;color:#666">(${cs.length})</small></h2>
+      ${lib.length ? `<div class="bt"><button class="cp" data-pdf="${esc(d)}">⬇ Cupones libres en PDF (${lib.length})</button></div>` : ''}
+      <div style="overflow-x:auto"><table class="cupt"><tr><th>Código</th><th>Estado</th><th>Equipo</th><th></th></tr>
+      ${cs.map(c => `<tr><td><code>${esc(c.codigo)}</code></td><td><span class="est ${c.estado === 'DE BAJA' ? 'BAJA' : esc(c.estado)}">${esc(c.estado)}</span></td>
+        <td>${c.equipo ? esc(c.equipo) + `<br><small>${esc(c.insc)} · ${esc(c.cat)}</small>` : '—'}</td>
+        <td style="white-space:nowrap">${c.estado === 'LIBRE' ? `<button class="cp" data-img="${esc(c.codigo)}">🖼 Imagen</button> <button class="cp" data-copy="${esc(c.codigo)}">Copiar</button> <button class="cp" data-baja="${esc(c.codigo)}">Baja</button>`
+          : `<button class="cp" data-lib="${esc(c.codigo)}">Liberar</button>`}</td></tr>`).join('')}</table></div></div>`; }).join('')}`;
+  const C = k => CUP.find(c => c.codigo === k);
+  $('cz').querySelectorAll('[data-img]').forEach(b => b.onclick = () => cuponImg(C(b.dataset.img)).then(cv => cv.toBlob(bl => bajar(bl, 'Cupon_' + b.dataset.img + '.png'))));
+  $('cz').querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); toast('Copiado: ' + b.dataset.copy); });
+  $('cz').querySelectorAll('[data-pdf]').forEach(b => b.onclick = () => cuponesPDF(CUP.filter(c => c.docente === b.dataset.pdf && c.estado === 'LIBRE'), b.dataset.pdf));
+  $('cz').querySelectorAll('[data-baja]').forEach(b => b.onclick = () => dialogo(`<h3>Dar de baja el cupón ${esc(b.dataset.baja)}</h3><p>Ya no se podrá usar para inscribirse.</p>`,
+    mo => api('pLiberarCupon', PIN, b.dataset.baja, 'BAJA', mo).then(() => { toast('Cupón dado de baja'); cargarCup(); })));
+  $('cz').querySelectorAll('[data-lib]').forEach(b => { const c = C(b.dataset.lib); b.onclick = () => dialogo(`<h3>Liberar el cupón ${esc(c.codigo)}</h3><p>${c.equipo ? `Lo usó <b>${esc(c.equipo)}</b> (${esc(c.insc)}). Haz esto solo si esa inscripción se anuló.` : ''} El cupón quedará LIBRE para otro equipo.</p>`,
+    mo => api('pLiberarCupon', PIN, c.codigo, 'LIBRE', mo).then(() => { toast('Cupón liberado'); cargarCup(); })); });
+}
+function bajar(blob, nombre) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+let FUENTES_CANVAS = null;
+function fuentesCanvas() {
+  if (!FUENTES_CANVAS) FUENTES_CANVAS = Promise.all([['CupB', FUENTES.MontB], ['CupR', FUENTES.MontR], ['CupI', FUENTES.MontI]].map(([n, b]) =>
+    new FontFace(n, 'url(data:font/ttf;base64,' + b + ')').load().then(f => document.fonts.add(f)).catch(() => null)));
+  return FUENTES_CANVAS;
+}
+/* Imagen del cupón: 1200 × 675 px */
+function cuponImg(c) {
+  return fuentesCanvas().then(() => new Promise(ok => {
+    const W = 1200, H = 675, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    {
+      let gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, '#050d26'); gr.addColorStop(1, '#0b2a6b'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      // panal de hexágonos (estilo eléctrico)
+      const hx = (x, y, r) => { g.beginPath(); for (let a = 0; a < 6; a++) { const t = Math.PI / 3 * a + Math.PI / 6; g.lineTo(x + r * Math.cos(t), y + r * Math.sin(t)); } g.closePath(); };
+      for (let row = -1; row < 9; row++) for (let col = 0; col < 9; col++) {
+        const r = 46, x = 760 + col * r * 1.732 + (row % 2 ? r * .866 : 0), y = row * r * 1.5;
+        const d = Math.min(1, Math.max(0, (x - 740) / 420));
+        hx(x, y, r - 4); g.strokeStyle = `rgba(30,123,255,${.12 + .4 * d})`; g.lineWidth = 2; g.stroke();
+        if ((row * 7 + col * 3) % 5 === 0) { g.fillStyle = `rgba(0,229,255,${.05 + .12 * d})`; g.fill(); }
+      }
+      // sello circular
+      g.save(); g.translate(1010, 345); g.rotate(-.18);
+      g.beginPath(); g.arc(0, 0, 118, 0, 7); g.fillStyle = 'rgba(5,13,38,.85)'; g.fill(); g.lineWidth = 6; g.strokeStyle = '#ffd23f'; g.stroke();
+      g.beginPath(); g.arc(0, 0, 100, 0, 7); g.lineWidth = 2; g.setLineDash([6, 6]); g.stroke(); g.setLineDash([]);
+      g.textAlign = 'center'; g.fillStyle = '#ffd23f'; g.font = '700 24px CupB, Arial'; g.fillText('INSCRIPCIÓN', 0, -22);
+      g.font = 'italic 900 50px CupI, Arial'; g.fillText('GRATIS', 0, 30); g.font = '700 18px CupB, Arial'; g.fillText('1 EQUIPO', 0, 62); g.restore(); g.textAlign = 'left';
+      g.strokeStyle = '#1e7bff'; g.lineWidth = 6; g.strokeRect(18, 18, W - 36, H - 36);
+      g.strokeStyle = 'rgba(0,229,255,.55)'; g.lineWidth = 2; g.strokeRect(32, 32, W - 64, H - 64);
+      // muescas de ticket
+      g.fillStyle = '#050d26'; [[0, H / 2], [W, H / 2]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 34, 0, 7); g.fill(); });
+      g.fillStyle = '#00e5ff'; g.font = '700 26px CupB, Arial'; g.fillText('TORNEO INTERNACIONAL DE ROBÓTICA', 70, 100);
+      g.fillStyle = '#fff'; g.font = 'italic 900 78px CupI, Arial'; g.fillText('GAMEBOTS XIII', 66, 180);
+      g.fillStyle = '#ffd23f'; g.font = '700 40px CupB, Arial'; g.fillText('CUPÓN DE INSCRIPCIÓN GRATUITA', 70, 250);
+      // código
+      g.setLineDash([14, 10]); g.strokeStyle = '#ffd23f'; g.lineWidth = 4; g.strokeRect(70, 290, 620, 120); g.setLineDash([]);
+      g.fillStyle = 'rgba(255,210,63,.08)'; g.fillRect(72, 292, 616, 116);
+      g.fillStyle = '#cfe0ff'; g.font = '500 20px CupR, Arial'; g.fillText('CÓDIGO', 92, 322);
+      g.fillStyle = '#fff'; g.font = '700 64px CupB, Consolas, monospace'; g.fillText(c.codigo, 92, 390);
+      g.fillStyle = '#cfe0ff'; g.font = '500 24px CupR, Arial'; g.fillText('Otorgado por:', 70, 462); const ow = g.measureText('Otorgado por:').width;
+      g.fillStyle = '#fff'; g.font = '700 30px CupB, Arial'; g.fillText(c.docente.length > 32 ? c.docente.slice(0, 31) + '…' : c.docente, 70 + ow + 12, 463);
+      g.fillStyle = '#cfe0ff'; g.font = '500 22px CupR, Arial';
+      g.fillText('Válido para 1 equipo · un solo uso · todas las categorías', 70, 512);
+      g.fillText('Al inscribirte, escribe este código en “N.º de comprobante”', 70, 548);
+      g.fillText('y sube esta imagen como foto del comprobante. 27 nov 2026 · UPEA.', 70, 580);
+      g.fillStyle = '#00e5ff'; g.font = '700 18px CupB, Arial'; g.fillText('CARRERA DE INGENIERÍA ELECTRÓNICA – UPEA', 70, 625);
+      ok(cv);
+    }
+  }));
+}
+function cuponesPDF(lista, docente) {
+  if (!lista.length) return;
+  if (!window.jspdf) { toast('No cargó el generador de PDF. Revisa tu internet.', true); return; }
+  toast('Generando PDF…');
+  Promise.all(lista.map(cuponImg)).then(cvs => {
+    const doc = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+    cvs.forEach((cv, i) => { const k = i % 3; if (i && !k) doc.addPage(); doc.addImage(cv.toDataURL('image/jpeg', .9), 'JPEG', 33, 12 + k * 90.5, 150, 84.375, null, 'FAST'); });
+    doc.save('Cupones_' + docente.replace(/\s+/g, '_') + '.pdf');
+  }).catch(e => toast(e.message || 'No se pudo generar el PDF', true));
 }
 
 /* ---------- HOMOLOGACIÓN ---------- */
