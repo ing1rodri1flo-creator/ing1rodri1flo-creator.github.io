@@ -32,6 +32,11 @@ h3.cat{margin:14px 2px 6px;font-size:12.5px;letter-spacing:.08em;color:var(--azu
 .it .nm{flex:1;font-size:17px;font-weight:600;word-break:break-word}
 .it .nm small{display:block;font-size:12px;color:var(--muted);font-weight:500}
 .it.ok{background:#eaf7f1;border-color:#a8dcc4}
+.it.sinpago{background:#fff7f6;border-style:dashed}.it.sinpago .ck{opacity:.35}
+.tag.VER{background:#e3f4ed;color:var(--ok)}.tag.OBS{background:#fdecea;color:var(--bad)}.tag.PEN{background:#fff4d6;color:#8a5a00}
+.card.VER{border-left:5px solid var(--ok)}.card.OBS{border-left:5px solid var(--bad)}.card.PEN{border-left:5px solid #e0a100}
+.dat{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:13.5px;margin:10px 0 4px}.dat span{color:#666}
+.compv{margin-top:10px;text-align:center}.compv img{max-width:100%;max-height:70vh;border-radius:8px;border:1px solid var(--line)}
 .cp{font-size:12px;border:1px solid var(--line);background:#f6f8fc;border-radius:6px;padding:7px 9px;color:#333}
 .ck{width:34px;height:34px;border-radius:8px;border:2px solid #9aa7bd;background:#fff;display:grid;place-items:center;font-size:20px;color:#fff;flex:none;padding:0}
 .it.ok .ck{background:var(--ok);border-color:var(--ok)}
@@ -70,7 +75,7 @@ td{padding:7px 6px;border-bottom:1px solid #edf0f6;vertical-align:middle}
 .log{border-left:5px solid var(--azul)}
 .pin{font-family:Consolas,monospace;background:#f3f6fb;padding:3px 7px;border-radius:5px}
 .rol{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:#e7f0ff;color:var(--azul)}
-.rol.ACR{background:#fff4d6;color:#8a5a00}.rol.CER{background:#e3f7ec;color:#16703f}.rol.ADM{background:#f1e7ff;color:#5b2ab0}
+.rol.ACR{background:#fff4d6;color:#8a5a00}.rol.INS{background:#fde8f1;color:#a3195b}.rol.CER{background:#e3f7ec;color:#16703f}.rol.ADM{background:#f1e7ff;color:#5b2ab0}
 .off{opacity:.5}
 .ov{position:fixed;inset:0;background:rgba(7,20,51,.55);display:flex;align-items:flex-end;justify-content:center;z-index:20}
 .dlg{background:#fff;width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:18px 16px 22px;max-height:92vh;overflow:auto}
@@ -143,9 +148,9 @@ $('salir').onclick = () => { ss.del('gx_pin'); location.reload(); };
 function iniciar() {
   $('vLogin').hidden = true; $('app').hidden = false;
   $('yoNom').textContent = D.yo.nombre;
-  $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', 'HOMOLOGACIÓN': 'Homologación', CERTIFICADOS: 'Certificados' }[D.yo.rol] || D.yo.rol;
-  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cert', '📜 Certificados']]
-    : D.yo.rol === 'HOMOLOGACIÓN' ? [['homol', '🔧 Homologación']] : D.yo.rol === 'CERTIFICADOS' ? [['cert', '📜 Certificados']] : [['acred', '🪪 Acreditación']];
+  $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', 'HOMOLOGACIÓN': 'Homologación', CERTIFICADOS: 'Certificados', 'INSCRIPCIÓN': 'Inscripción' }[D.yo.rol] || D.yo.rol;
+  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cert', '📜 Certificados']]
+    : D.yo.rol === 'HOMOLOGACIÓN' ? [['homol', '🔧 Homologación']] : D.yo.rol === 'CERTIFICADOS' ? [['cert', '📜 Certificados']] : D.yo.rol === 'INSCRIPCIÓN' ? [['inscr', '📝 Inscripción']] : [['acred', '🪪 Acreditación']];
   $('nav').innerHTML = vistas.length > 1 ? vistas.map(v => `<button data-v="${v[0]}">${v[1]}</button>`).join('') : '';
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => ir(b.dataset.v));
   ir(ss.get('gx_vista') && vistas.some(v => v[0] === ss.get('gx_vista')) ? ss.get('gx_vista') : vistas[0][0]);
@@ -156,7 +161,7 @@ function ir(v) { VISTA = v; ss.set('gx_vista', v); F = { q: '', cat: '' }; ABIER
 function recargar() { return api('pDatos', PIN).then(d => { D = d; pintar(true); }).catch(e => { if (/PIN/.test(e.message)) { ss.del('gx_pin'); location.reload(); } }); }
 function pintar(suave) {
   const y = window.scrollY, foco = document.activeElement && document.activeElement.id;
-  ({ resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cert: vCert })[VISTA]();
+  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cert: vCert })[VISTA]();
   if (suave) { window.scrollTo(0, y); if (foco && $(foco)) { const el = $(foco); el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); } }
 }
 const catNom = c => { const x = D.categorias.find(k => k.cod === c); return x ? x.nombre : c; };
@@ -184,8 +189,8 @@ function vAcred() {
     D.categorias.filter(c => !F.cat || c.cod === F.cat).forEach(c => {
       const ps = personas.filter(x => x.e.cat === c.cod && (!q || norm(x.p.nombre + ' ' + x.e.equipo).indexOf(q) >= 0));
       if (!ps.length) return;
-      h += `<h3 class="cat">${c.cod} · ${esc(c.nombre)}</h3>` + ps.map(x => `<div class="it ${x.p.acred ? 'ok' : ''}">
-        <span class="nm">${esc(x.p.nombre)}<small>${x.p.acred ? '✓ acreditado' + (x.p.hora ? ' · ' + esc(x.p.hora) : '') : esc(x.e.equipo)}</small></span>
+      h += `<h3 class="cat">${c.cod} · ${esc(c.nombre)}</h3>` + ps.map(x => `<div class="it ${x.p.acred ? 'ok' : ''} ${!x.e.pago && !x.p.acred ? 'sinpago' : ''}">
+        <span class="nm">${esc(x.p.nombre)}<small>${x.p.acred ? '✓ acreditado' + (x.p.hora ? ' · ' + esc(x.p.hora) : '') : esc(x.e.equipo)}${!x.e.pago && !x.p.acred ? ' · <b class="r">pago sin verificar</b>' : ''}</small></span>
         <button class="cp" data-copia="${esc(x.p.nombre)}">Copiar</button>
         <button class="ck" data-cod="${x.e.codigo}" data-n="${x.p.n}" ${x.p.acred ? 'aria-checked="true"' : ''}>${x.p.acred ? '✓' : ''}</button></div>`).join('');
     });
@@ -203,11 +208,86 @@ function copiar(t) {
 }
 function acreditar(b) {
   const e = D.equipos.find(x => x.codigo === b.dataset.cod), p = e.p[b.dataset.n - 1];
+  if (!p.acred && !e.pago && !D.yo.admin) { toast('Su pago aún no está verificado. Que pase primero por Inscripción.', true); return; }
   if (p.acred) { toast(D.yo.admin ? 'Para quitarla usa Correcciones.' : 'Ya está acreditado. Si fue un error, avisa al administrador.'); return; }
   const fila = b.closest('.it'); fila.classList.add('ok', 'cargando'); b.textContent = '✓';
   api('pAcreditar', PIN, e.codigo, p.n).then(r => { p.acred = true; p.hora = r.hora; toast('Acreditado: ' + p.nombre); pintar(true); })
     .catch(er => { fila.classList.remove('ok'); b.textContent = ''; toast(er.message, true); })
     .finally(() => fila.classList.remove('cargando'));
+}
+
+/* ---------- INSCRIPCIÓN (control de pagos) ---------- */
+let INS = null, ISEG = 'PEN';
+const estPago = x => x.pago ? 'VER' : /^OBSERVADO/.test(x.obs) ? 'OBS' : 'PEN';
+const EST_TXT = { VER: 'PAGO VERIFICADO', OBS: 'OBSERVADO', PEN: 'POR VERIFICAR' };
+function vInscr() {
+  const m = $('main');
+  m.innerHTML = `<h1>Inscripción</h1><p class="sub">Revisa el comprobante de cada equipo y verifica el pago. Solo los equipos con pago verificado pueden acreditarse.</p><div id="iz"><div class="vacio">Cargando…</div></div>`;
+  api('pInscritos', PIN).then(l => { INS = l; pintaInscr(); }).catch(e => $('iz').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
+}
+function pintaInscr() {
+  const l = INS, c = { PEN: 0, OBS: 0, VER: 0 }; l.forEach(x => c[estPago(x)]++);
+  const bs = l.filter(x => x.pago).reduce((a, x) => a + (Number(x.costo) || 0), 0);
+  $('iz').innerHTML = `<div class="res"><div><b style="color:#8a5a00">${c.PEN}</b>Por verificar</div><div><b class="r">${c.OBS}</b>Observados</div><div><b class="g">${c.VER}</b>Verificados</div><div><b>${bs}</b>Bs recaudado</div></div>
+    <div class="seg"><button data-s="PEN">Por verificar</button><button data-s="OBS">Observados</button><button data-s="VER">Verificados</button><button data-s="">Todos</button></div>
+    <input id="q" type="search" placeholder="🔎 Buscar equipo, robot, participante o N.º de comprobante…" value="${esc(F.q)}">
+    ${chips(D.categorias, 'Todas')}<div id="lista"></div>`;
+  $('iz').querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.s === ISEG); b.onclick = () => { ISEG = b.dataset.s; ABIERTO = ''; pintaInscr(); }; });
+  const lista = () => {
+    const q = norm(F.q);
+    const xs = l.filter(x => (!ISEG || estPago(x) === ISEG) && (!F.cat || x.cat === F.cat) &&
+      (!q || norm([x.codigo, x.equipo, x.robot, x.p.join(' '), x.tutor, x.inst, x.ref, x.cel].join(' ')).indexOf(q) >= 0));
+    $('lista').innerHTML = xs.map(x => {
+      const k = estPago(x), ab = ABIERTO === x.codigo;
+      return `<div class="card ${k} ${ab ? 'open' : ''}" data-cod="${x.codigo}"><div class="h"><span class="eq">${esc(x.equipo)} · “${esc(x.robot)}”<small>${x.cat} ${esc(x.catNombre)} · ${esc(x.codigo)} · ${esc(x.fecha)}</small></span><span class="tag ${k}">${EST_TXT[k]}</span></div>
+        ${k === 'OBS' ? `<div class="obs">${esc(x.obs)}</div>` : ''}
+        ${ab ? `<div class="dat"><span>Participantes</span><b>${x.p.map(esc).join('<br>')}</b><span>Tutor</span><b>${esc(x.tutor) || '—'}</b><span>Institución</span><b>${esc(x.inst) || '—'}</b>
+          <span>Celular</span><b>${x.cel ? `<a href="https://wa.me/591${esc(x.cel.replace(/\D/g, '').slice(-8))}" target="_blank" rel="noopener">${esc(x.cel)}</a>` : '—'}</b>
+          <span>Pago</span><b>${esc(x.metodo)} · ${esc(String(x.costo))} Bs</b><span>N.º comprobante</span><b>${esc(x.ref) || '—'}</b></div>
+          <div class="bt">${x.comp ? `<button class="b" data-ver>🧾 Ver comprobante</button>` : '<div class="obs">Sin comprobante adjunto.</div>'}</div><div class="compv" id="cv_${x.codigo}"></div>
+          ${!x.pago ? `<div class="bt"><button class="a" data-pago="1">✓ PAGO VERIFICADO</button><button class="w" data-pago="0">⚠ OBSERVAR</button></div>`
+            : D.yo.admin ? `<div class="bt"><button class="gr" data-pago="0">Quitar verificación</button></div>` : '<div class="obs" style="color:#555">Pago verificado. Si hay un error, avisa al administrador.</div>'}
+          <div class="bt"><button class="gr" data-anular style="color:var(--bad)!important">🗑 Anular inscripción</button></div>` : ''}</div>`;
+    }).join('') || '<div class="vacio">No hay inscripciones aquí.</div>';
+    $('lista').querySelectorAll('.card .h').forEach(h => h.onclick = () => { const cod = h.parentNode.dataset.cod; ABIERTO = ABIERTO === cod ? '' : cod; lista(); });
+    $('lista').querySelectorAll('[data-ver]').forEach(b => b.onclick = () => verComp(b, b.closest('.card').dataset.cod));
+    $('lista').querySelectorAll('[data-pago]').forEach(b => b.onclick = () => pagar(b.closest('.card').dataset.cod, b.dataset.pago === '1'));
+    $('lista').querySelectorAll('[data-anular]').forEach(b => b.onclick = () => anular(b.closest('.card').dataset.cod));
+  };
+  lista(); enlazarFiltros(lista);
+  document.querySelectorAll('#iz .chips button').forEach(b => b.onclick = () => { F.cat = b.dataset.c; pintaInscr(); });
+}
+function verComp(b, cod) {
+  const box = $('cv_' + cod); b.disabled = true; b.textContent = 'Cargando…';
+  api('pComprobante', PIN, cod).then(r => {
+    const bin = atob(r.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([u8], { type: r.mime }));
+    if (/^image\//.test(r.mime)) box.innerHTML = `<img src="${url}" alt="Comprobante"><div><a href="${url}" target="_blank">Abrir en grande</a></div>`;
+    else box.innerHTML = `<a class="cp" href="${url}" target="_blank">📄 Abrir el comprobante (PDF)</a>`;
+    b.textContent = '🧾 Comprobante';
+  }).catch(e => { toast(e.message, true); b.disabled = false; b.textContent = '🧾 Ver comprobante'; });
+}
+function recInscr() { return api('pInscritos', PIN).then(l => { INS = l; pintaInscr(); }); }
+function pagar(cod, ok) {
+  const x = INS.find(i => i.codigo === cod);
+  if (ok) {
+    const ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = `<div class="dlg"><h3>Confirmar pago</h3><p><b>${esc(x.equipo)}</b> (${x.cat}) · ${esc(String(x.costo))} Bs · comprobante N.º <b>${esc(x.ref) || '—'}</b>.<br>¿El pago llegó correctamente?</p>
+      <div class="bt"><button class="gr" id="dCan">Cancelar</button><button class="a" id="dOk">✓ Sí, verificado</button></div></div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#dCan').onclick = () => ov.remove(); ov.onclick = e => { if (e.target === ov) ov.remove(); };
+    ov.querySelector('#dOk').onclick = () => { const b = ov.querySelector('#dOk'); b.disabled = true; b.textContent = 'Guardando…';
+      api('pVerificarPago', PIN, cod, true, '').then(() => { ov.remove(); ABIERTO = ''; toast('Pago verificado: ' + x.equipo); recInscr(); recargar(); })
+        .catch(e => { toast(e.message, true); b.disabled = false; b.textContent = '✓ Sí, verificado'; }); };
+    return;
+  }
+  dialogo(`<h3>${x.pago ? 'Quitar verificación' : 'Observar pago'}</h3><p><b>${esc(x.equipo)}</b> (${x.cat}). Escribe qué está mal (por ejemplo: monto incompleto, no llegó la transferencia).</p>`,
+    mo => api('pVerificarPago', PIN, cod, false, mo).then(() => { ABIERTO = ''; toast('Pago observado'); return recInscr(); }));
+}
+function anular(cod) {
+  const x = INS.find(i => i.codigo === cod);
+  dialogo(`<h3>Anular inscripción</h3><p><b>${esc(x.equipo)} · “${esc(x.robot)}”</b> (${x.cat} · ${esc(x.codigo)}) saldrá de la lista. Queda guardada en “Anuladas (respaldo)” y el administrador puede restaurarla.</p>`,
+    mo => api('pAnular', PIN, cod, mo).then(() => { ABIERTO = ''; toast('Inscripción anulada'); return recInscr(); }));
 }
 
 /* ---------- HOMOLOGACIÓN ---------- */
@@ -329,7 +409,7 @@ function dlgHomol(cod) {
 
 /* ---------- USUARIOS (admin) ---------- */
 function vUsuarios() {
-  const rc = r => r === 'ADMINISTRADOR' ? 'ADM' : r === 'ACREDITACIÓN' ? 'ACR' : r === 'CERTIFICADOS' ? 'CER' : '';
+  const rc = r => r === 'ADMINISTRADOR' ? 'ADM' : r === 'ACREDITACIÓN' ? 'ACR' : r === 'CERTIFICADOS' ? 'CER' : r === 'INSCRIPCIÓN' ? 'INS' : '';
   $('main').innerHTML = `<h1>Usuarios y PIN</h1><p class="sub">Toca una persona para cambiar su PIN, rol o categorías. Desactívala para quitarle el acceso.</p>
    <div class="box"><div style="display:flex;align-items:center;margin-bottom:6px"><h2 style="margin:0">Usuarios</h2><button class="b" id="nuevo" style="margin-left:auto;border:0;color:#fff;border-radius:8px;padding:8px 12px;font-weight:700">+ Nuevo usuario</button></div>
    <table><tr><th>Nombre</th><th>PIN</th><th>Rol</th><th>Categorías</th></tr>
@@ -343,7 +423,7 @@ function dlgUsuario(u) {
   const ov = document.createElement('div'); ov.className = 'ov';
   ov.innerHTML = `<div class="dlg"><h3>${u ? 'Modificar usuario' : 'Nuevo usuario'}</h3>
     <label class="fl">Nombre<input id="uN" type="text" value="${esc(u ? u.nombre : '')}" placeholder="Ej.: Ing. Nacho"></label>
-    <label class="fl">Rol<select id="uR">${['HOMOLOGACIÓN', 'ACREDITACIÓN', 'CERTIFICADOS', 'ADMINISTRADOR'].map(r => `<option ${u && u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
+    <label class="fl">Rol<select id="uR">${['HOMOLOGACIÓN', 'INSCRIPCIÓN', 'ACREDITACIÓN', 'CERTIFICADOS', 'ADMINISTRADOR'].map(r => `<option ${u && u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
     <div class="fl" id="uCw">Categorías que homologa <a href="#" id="uTodas" style="float:right;font-weight:700">Marcar todas</a><div class="cats">${CATS.map(c => `<label><input type="checkbox" value="${c.cod}" ${sel.indexOf(c.cod) >= 0 ? 'checked' : ''}>${c.cod} ${esc(c.nombre)}</label>`).join('')}</div></div>
     <label class="fl">PIN (vacío = se genera solo)<input id="uP" type="tel" inputmode="numeric" maxlength="8" value="${esc(u ? u.pin : '')}"></label>
     ${u ? `<label class="opt"><input type="checkbox" id="uA" ${u.activo ? 'checked' : ''}><div><b>Activo</b><small>Desmárcalo para quitarle el acceso</small></div></label>` : ''}
