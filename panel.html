@@ -160,7 +160,7 @@ function iniciar() {
   $('nav').innerHTML = vistas.length > 1 ? vistas.map(v => `<button data-v="${v[0]}">${v[1]}</button>`).join('') : '';
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => ir(b.dataset.v));
   ir(ss.get('gx_vista') && vistas.some(v => v[0] === ss.get('gx_vista')) ? ss.get('gx_vista') : vistas[0][0]);
-  setInterval(() => { if (!document.hidden && !document.querySelector('.ov') && !ABIERTO) recargar(); }, 30000);
+  setInterval(() => { if (!document.hidden && !document.querySelector('.ov') && !ABIERTO && VISTA !== 'cert' && VISTA !== 'cupones') recargar(); }, 30000); // certificados y cupones no se recargan solos
 }
 function ir(v) { VISTA = v; ss.set('gx_vista', v); F = { q: '', cat: '' }; ABIERTO = '';
   $('nav').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); pintar(); window.scrollTo(0, 0); }
@@ -229,6 +229,7 @@ const EST_TXT = { VER: 'PAGO VERIFICADO', OBS: 'OBSERVADO', PEN: 'POR VERIFICAR'
 function vInscr() {
   const m = $('main');
   m.innerHTML = `<h1>Inscripción</h1><p class="sub">Revisa el comprobante de cada equipo y verifica el pago. Solo los equipos con pago verificado pueden acreditarse.</p><div id="iz"><div class="vacio">Cargando…</div></div>`;
+  if (INS) pintaInscr();
   api('pInscritos', PIN).then(l => { INS = l; pintaInscr(); }).catch(e => $('iz').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
 }
 function pintaInscr() {
@@ -618,11 +619,12 @@ function vCert() {
       <label class="op"><input type="radio" name="modo" value="datos" ${MODO === 'datos' ? 'checked' : ''}><span><b>Solo datos</b> · imprime solo el <b>nombre</b> y la <b>categoría</b>, para hojas base <b>ya impresas</b>.</span></label>
       <div class="bt"><button class="b" id="bBase">⬇ Hojas base para imprimir antes (4 diseños con el texto, sin nombre ni categoría)</button></div>
       <p class="sub" style="margin:6px 0 0">Para “Solo datos”: imprime primero las hojas base; el día del evento pon esas hojas en la impresora (en la misma posición) e imprime los datos encima. Usa la misma impresora y la misma configuración en las dos impresiones.</p></div>
-    <div class="box" id="cbox"><div class="vacio">Cargando…</div></div>`;
+    <div class="box" id="cbox"><div class="vacio">${CERT ? '' : 'Cargando…'}</div></div>`;
   m.querySelectorAll('input[name="modo"]').forEach(r => r.onchange = () => { MODO = r.value; toast(MODO === 'datos' ? 'Modo: solo datos (hoja preimpresa)' : 'Modo: completo'); });
   $('bBase').onclick = hojasBase;
   m.querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.s === CSEG); b.onclick = () => { CSEG = b.dataset.s; vCert(); }; });
-  api('pCertificados', PIN).then(r => { CERT = r; CSEG === 'part' ? pintaCert() : pintaPodio(); }).catch(e => $('cbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
+  if (CERT) CSEG === 'part' ? pintaCert() : pintaPodio(); // muestra al instante lo último y actualiza detrás
+  api('pCertificados', PIN).then(r => { const q = $('q') && $('q').value; CERT = r; CSEG === 'part' ? pintaCert() : pintaPodio(); if (q && $('q')) { $('q').value = q; $('q').oninput(); } }).catch(e => $('cbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
 }
 function pintaCert() {
   const l = CERT.participantes;
