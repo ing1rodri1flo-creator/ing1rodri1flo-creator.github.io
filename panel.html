@@ -40,6 +40,7 @@ h3.cat{margin:14px 2px 6px;font-size:12.5px;letter-spacing:.08em;color:var(--azu
 .dat{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:13.5px;margin:10px 0 4px}.dat span{color:#666}
 .rec summary{font-weight:800;cursor:pointer;color:var(--azul)}.rec[open] summary{margin-bottom:10px}.trec td.nn,.trec th{text-align:right}.trec td,.trec th{padding:7px 6px}.trec th:first-child{text-align:left}.trec tr.tot td{font-weight:900;border-top:2px solid #141a2e;background:#f3f6fb}
 .imp .op{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:14px;cursor:pointer}.imp .op input{margin-top:3px}
+.pf{margin:4px 0 4px!important;padding:8px 10px!important;font-size:14px!important}.pres{display:flex;flex-direction:column;gap:4px;margin-bottom:4px}.pick{text-align:left;background:#eef4ff;border:1px solid #c8d8f5;border-radius:10px;padding:8px 10px;font-size:14px;cursor:pointer}.pick small{display:block;color:#666}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}@media(max-width:620px){.g2{grid-template-columns:1fr}}
 .gcat{border-top:1px solid var(--line);padding-top:8px;margin-top:10px}.gh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.gh small{color:#666;font-weight:500}
 .tag.EFE{background:#dff5f5;color:#0f6b6b;margin-right:4px}.tag.CUP{background:#efe6ff;color:#5b2bb5;margin-right:4px}
@@ -885,12 +886,12 @@ function pintaLista() {
   const vis = todos.filter(x => (!OCULTAR || !IMPRESOS.has(keyC(x))) && (!q || norm(x.nombre + ' ' + x.equipo + ' ' + x.robot + ' ' + x.codigo).indexOf(q) >= 0));
   const cats = D.categorias.filter(c => vis.some(x => x.cat === c.cod));
   const nSel = todos.filter(x => SEL.has(keyC(x))).length, imp = todos.filter(x => IMPRESOS.has(keyC(x))).length;
-  $('cbox').innerHTML = `<p style="margin:0 0 8px"><b>${todos.length}</b> certificados de ${CSEG === 'podio' ? 'podio' : 'participación'} · <b>${imp}</b> ya descargados en este equipo.</p>
+  $('cbox').innerHTML = `<div class="fl" style="margin:0 0 10px"><b>🔎 Buscar un certificado</b><input id="qc" type="search" placeholder="Nombre, equipo, robot o código (GX13-…)" value="${esc(QC)}">${q ? `<small style="color:#555">${vis.length} resultado(s). Toca ⬇ para descargar solo ese certificado.</small>` : ''}</div>
+    <p style="margin:0 0 8px"><b>${todos.length}</b> certificados de ${CSEG === 'podio' ? 'podio' : 'participación'} · <b>${imp}</b> ya descargados en este equipo.</p>
     <div class="bt" style="flex-wrap:wrap"><button class="a" id="cTodo" ${todos.length ? '' : 'disabled'}>⬇ Todos (${todos.length})</button><button class="b" id="cSel" ${nSel ? '' : 'disabled'}>⬇ Seleccionados (${nSel})</button><button class="cp" id="cPend" ${todos.length - imp ? '' : 'disabled'}>⬇ Solo los no descargados (${todos.length - imp})</button></div>
     <div class="bt" style="flex-wrap:wrap"><button class="gr" id="cAll">☑ Marcar todos</button><button class="gr" id="cNone">☐ Ninguno</button>
       <label class="op" style="margin:0"><input type="checkbox" id="cOcu" ${OCULTAR ? 'checked' : ''}><span>Ocultar los ya descargados</span></label>
       ${imp ? '<button class="gr" id="cReset">↺ Olvidar descargados</button>' : ''}</div>
-    <input id="qc" type="search" placeholder="🔎 Buscar nombre, equipo, robot o código…" value="${esc(QC)}">
     ${!vis.length ? '<div class="vacio">' + (CSEG === 'podio' ? 'Aún no hay podios registrados por los jueces.' : 'No hay certificados aquí.') + '</div>' : cats.map(c => {
       const xs = vis.filter(x => x.cat === c.cod), todosSel = xs.every(x => SEL.has(keyC(x)));
       return `<div class="gcat"><div class="gh"><label class="op" style="margin:0"><input type="checkbox" data-gc="${c.cod}" ${todosSel ? 'checked' : ''}><b>${c.cod} · ${esc(c.nombre)}</b> <small>(${xs.length})</small></label><button class="cp" data-dc="${c.cod}">⬇ Categoría</button></div>
@@ -932,20 +933,39 @@ function ganadores(cat) {
     .reduce((o, r) => o.concat(r.personas.map(x => Object.assign({}, x, { puesto: r.puesto }))), []);
 }
 /* selección del podio: la usan jueces (editar), administrador (editar y corregir) y certificados (solo ver) */
+let PQ = '', PCAT = '';
 function podioSel(box, refrescar) {
-  const P = CERT.podio, edita = D.yo.admin || D.yo.rol === 'JUEZ';
-  const cats = D.categorias.filter(c => D.yo.admin || D.yo.rol !== 'JUEZ' || CERT.equipos.some(e => e.cat === c.cod) || true);
+  const P = CERT.podio, edita = D.yo.admin || D.yo.rol === 'JUEZ', q = norm(PQ);
+  const conEq = D.categorias.filter(c => CERT.equipos.some(e => e.cat === c.cod));
+  const coincide = e => !q || norm([e.equipo, e.robot, e.codigo, e.personas.map(p => p.nombre).join(' ')].join(' ')).indexOf(q) >= 0;
+  const cats = D.categorias.filter(c => (!PCAT || c.cod === PCAT) && (!q || CERT.equipos.some(e => e.cat === c.cod && coincide(e))));
   box.innerHTML = `<h2>🏆 Resultados del podio</h2><p class="sub" style="margin:0 0 6px">${edita ? 'Elige el equipo ganador de cada puesto según el acta. ' + (D.yo.admin ? 'Como administrador puedes cambiar un puesto ya registrado (con motivo).' : 'Una vez guardado, solo el administrador puede cambiarlo.') : 'Los podios los registran los jueces; aquí solo se ven.'}</p>
     ${cats.map(c => {
       const eqs = CERT.equipos.filter(e => e.cat === c.cod);
       return `<div class="gcat"><div class="gh"><b>${c.cod} · ${esc(c.nombre)}</b> <small>(${c.nivel})</small></div>
+        ${q ? `<div class="sub" style="margin:-2px 0 4px">Coinciden: ${eqs.filter(coincide).map(e => '<b>' + esc(e.equipo) + '</b> · “' + esc(e.robot) + '”').join(', ')}</div>` : ''}
         ${!eqs.length ? '<div class="vacio" style="padding:4px 0">Aún no hay equipos acreditados.</div>' : [1, 2, 3].map(pu => {
           const r = P.find(x => x.cat === c.cod && x.puesto === pu), bloq = !edita || (r && !D.yo.admin);
           return `<div class="fl" style="margin:6px 0">${MED[pu]} ${PUESTO[pu]}${r ? ` <small style="color:#666">· registró ${esc(r.por)}</small>` : ''}
+            ${bloq ? '' : `<input class="pf" type="search" data-fc="${c.cod}" data-fp="${pu}" placeholder="🔎 Buscar para el ${PUESTO[pu].toLowerCase()} de ${c.cod}…"><div class="pres" data-rc="${c.cod}" data-rp="${pu}"></div>`}
             <select data-cat="${c.cod}" data-pu="${pu}" data-ant="${r ? r.codigo : ''}" ${bloq ? 'disabled' : ''}><option value="">— sin registrar —</option>
-            ${eqs.map(e => `<option value="${e.codigo}" ${r && r.codigo === e.codigo ? 'selected' : ''}>${esc(e.equipo)} · “${esc(e.robot)}” (${e.personas.length} pers.)</option>`).join('')}</select></div>`;
+            ${eqs.filter(e => coincide(e) || (r && r.codigo === e.codigo)).map(e => `<option value="${e.codigo}" ${r && r.codigo === e.codigo ? 'selected' : ''}>${esc(e.equipo)} · “${esc(e.robot)}” · ${e.codigo} (${e.personas.length} pers.)</option>`).join('')}</select></div>`;
         }).join('')}</div>`;
-    }).join('') || '<div class="vacio">No tienes categorías asignadas.</div>'}`;
+    }).join('') || `<div class="vacio">${q ? 'Ningún equipo coincide con la búsqueda.' : 'No tienes categorías asignadas.'}</div>`}`;
+  const bus = document.createElement('div');
+  bus.innerHTML = `<input id="pq" type="search" placeholder="🔎 Buscar equipo, robot, participante o código…" value="${esc(PQ)}">${conEq.length > 1 ? `<div class="chips"><button data-pc="" class="${PCAT ? '' : 'on'}">Todas</button>${conEq.map(c => `<button data-pc="${c.cod}" class="${PCAT === c.cod ? 'on' : ''}">${c.cod} ${esc(c.nombre)}</button>`).join('')}</div>` : ''}`;
+  box.insertBefore(bus, box.children[2] || null);
+  const pq = bus.querySelector('#pq');
+  pq.oninput = () => { PQ = pq.value; const k = pq.selectionStart; podioSel(box, refrescar); const n = box.querySelector('#pq'); n.focus(); n.setSelectionRange(k, k); };
+  bus.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => { PCAT = b.dataset.pc; podioSel(box, refrescar); });
+  box.querySelectorAll('input.pf').forEach(inp => inp.oninput = () => { // buscador de cada categoría y puesto
+    const cat = inp.dataset.fc, pu = inp.dataset.fp, q2 = norm(inp.value), res = box.querySelector(`.pres[data-rc="${cat}"][data-rp="${pu}"]`);
+    const sel = box.querySelector(`select[data-cat="${cat}"][data-pu="${pu}"]`);
+    if (!q2) { res.innerHTML = ''; return; }
+    const ms = CERT.equipos.filter(e => e.cat === cat && norm([e.equipo, e.robot, e.codigo, e.personas.map(p => p.nombre).join(' ')].join(' ')).indexOf(q2) >= 0);
+    res.innerHTML = ms.length ? ms.slice(0, 8).map(e => `<button class="pick" data-v="${e.codigo}"><b>${esc(e.equipo)}</b> · “${esc(e.robot)}” <small>${e.codigo} · ${e.personas.map(p => esc(p.nombre)).join(', ')}</small></button>`).join('') : '<div class="sub" style="margin:2px 0">Ningún equipo coincide.</div>';
+    res.querySelectorAll('.pick').forEach(b => b.onclick = () => { sel.value = b.dataset.v; res.innerHTML = ''; inp.value = ''; sel.dispatchEvent(new Event('change')); });
+  });
   box.querySelectorAll('select[data-pu]').forEach(sel => sel.onchange = () => {
     const cat = sel.dataset.cat, pu = +sel.dataset.pu, cod = sel.value, ant = sel.dataset.ant;
     const volver = () => { sel.value = ant; };
@@ -1012,7 +1032,7 @@ function vSorteo() {
     ${admin ? `<div class="box"><label class="op" style="margin:0 0 8px"><input type="checkbox" id="sH" ${SOLOH ? 'checked' : ''}><span>Sortear <b>solo robots homologados (aprobados)</b>. Si no marcas, entran todos los equipos con pago verificado.</span></label>
       <div class="bt" style="flex-wrap:wrap"><button class="a" id="sTodas">🎲 Sortear las categorías que faltan</button><button class="b" id="sPdf">⬇ PDF de todas las listas</button></div></div>` : `<div class="bt"><button class="b" id="sPdf">⬇ PDF de mis listas</button></div>`}
     <div id="sz"><div class="vacio">Cargando…</div></div>`;
-  if (admin) $('sH').onchange = e => SOLOH = e.target.checked;
+  if (admin) $('sH').onchange = e => { SOLOH = e.target.checked; if (SOR) pintaSorteo(); };
   const cargar = () => api('pSorteo', PIN).then(r => { SOR = r; pintaSorteo(); }).catch(e => $('sz').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
   $('sPdf').onclick = () => SOR && listasPDF(D.categorias.map(c => c.cod).filter(c => SOR.sorteo.some(r => r.cat === c)), 'GXIII_LISTAS_JUECES');
   if (admin) $('sTodas').onclick = () => { if (!SOR) return; const f = D.categorias.map(c => c.cod).filter(c => !SOR.sorteo.some(r => r.cat === c) && elegibles(c).length);
@@ -1100,7 +1120,7 @@ function generar(lista, nombreArchivo, base) {
   setTimeout(() => {
     const doc = nuevoDoc('landscape');
     certPaginas(doc, lista, soloDatos, base);
-    doc.save(nombreArchivo + '.pdf');
+    doc.save(nombreArchivo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w.-]+/g, '_') + '.pdf');
     toast('Listo: ' + lista.length + (base ? ' hoja(s) base' : ' certificado(s)'));
   }, 50);
 }
