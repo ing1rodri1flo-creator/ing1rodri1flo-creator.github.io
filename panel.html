@@ -33,6 +33,8 @@ h3.cat{margin:14px 2px 6px;font-size:12.5px;letter-spacing:.08em;color:var(--azu
 .it .nm small{display:block;font-size:12px;color:var(--muted);font-weight:500}
 .it.ok{background:#eaf7f1;border-color:#a8dcc4}
 .it.sinpago{background:#fff7f6;border-style:dashed}.it.sinpago .ck{opacity:.35}
+.it.pagok{background:#f0faf4;border-color:#9fd9b8;border-left:5px solid #2e9e63}.pv{color:#16803f;font-weight:700}
+.card.espera{opacity:.6;border-style:dashed}.tag.ESP{background:#eceff4;color:#667}
 .tag.VER{background:#e3f4ed;color:var(--ok)}.tag.OBS{background:#fdecea;color:var(--bad)}.tag.PEN{background:#fff4d6;color:#8a5a00}
 .card.VER{border-left:5px solid var(--ok)}.card.OBS{border-left:5px solid var(--bad)}.card.PEN{border-left:5px solid #e0a100}
 .dat{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:13.5px;margin:10px 0 4px}.dat span{color:#666}
@@ -197,8 +199,8 @@ function vAcred() {
     D.categorias.filter(c => !F.cat || c.cod === F.cat).forEach(c => {
       const ps = personas.filter(x => x.e.cat === c.cod && (!q || norm(x.p.nombre + ' ' + x.e.equipo).indexOf(q) >= 0));
       if (!ps.length) return;
-      h += `<h3 class="cat">${c.cod} · ${esc(c.nombre)}</h3>` + ps.map(x => `<div class="it ${x.p.acred ? 'ok' : ''} ${!x.e.pago && !x.p.acred ? 'sinpago' : ''}">
-        <span class="nm">${esc(x.p.nombre)}<small>${x.p.acred ? '✓ acreditado' + (x.p.hora ? ' · ' + esc(x.p.hora) : '') : esc(x.e.equipo)}${!x.e.pago && !x.p.acred ? ' · <b class="r">pago sin verificar</b>' : ''}</small></span>
+      h += `<h3 class="cat">${c.cod} · ${esc(c.nombre)}</h3>` + ps.map(x => `<div class="it ${x.p.acred ? 'ok' : ''} ${!x.e.pago && !x.p.acred ? 'sinpago' : ''} ${x.e.pago && !x.p.acred ? 'pagok' : ''}">
+        <span class="nm">${esc(x.p.nombre)}<small>${x.p.acred ? '✓ acreditado' + (x.p.hora ? ' · ' + esc(x.p.hora) : '') : esc(x.e.equipo)}${!x.e.pago && !x.p.acred ? ' · <b class="r">pago sin verificar</b>' : ''}${x.e.pago && !x.p.acred ? ' · <span class="pv">✓ pago verificado · listo para acreditar</span>' : ''}</small></span>
         <button class="cp" data-copia="${esc(x.p.nombre)}">Copiar</button>
         <button class="ck" data-cod="${x.e.codigo}" data-n="${x.p.n}" ${x.p.acred ? 'aria-checked="true"' : ''}>${x.p.acred ? '✓' : ''}</button></div>`).join('');
     });
@@ -648,23 +650,27 @@ const REP_F = {
 function vHomol() {
   const m = $('main');
   if (!F.cat && D.categorias.length) F.cat = D.categorias[0].cod;
-  const eq = D.equipos.filter(e => e.cat === F.cat);
-  const c = { A: 0, N: 0, P: 0 }; eq.forEach(e => { const s = e.homol.estado; c[s === 'APROBADO' ? 'A' : s === 'NO APROBADO' ? 'N' : 'P']++; });
+  const listo = e => e.pago && e.p.some(p => p.acred); // paso a paso: pago verificado → acreditado → homologación
+  const todosCat = D.equipos.filter(e => e.cat === F.cat), espera = todosCat.filter(e => !listo(e) && e.homol.estado === 'PENDIENTE').length;
+  const eq = todosCat.filter(e => listo(e) || e.homol.estado !== 'PENDIENTE'); // solo aparecen los que ya pagaron y se acreditaron
+  const c = { A: 0, N: 0, P: 0, E: 0 }; eq.forEach(e => { const s = e.homol.estado; c[s === 'APROBADO' ? 'A' : s === 'NO APROBADO' ? 'N' : listo(e) ? 'P' : 'E']++; });
   m.innerHTML = `<h1>Homologación</h1>${chips(D.categorias)}
     <input id="q" type="search" placeholder="🔎 Buscar equipo, robot o participante…" value="${esc(F.q)}">
-    <div class="res"><div><b class="g">${c.A}</b>Aprobados</div><div><b class="r">${c.N}</b>No aprobados</div><div><b class="p">${c.P}</b>Pendientes</div></div><div id="lista"></div>`;
+    <div class="res" style="grid-template-columns:repeat(3,1fr)"><div><b class="g">${c.A}</b>Aprobados</div><div><b class="r">${c.N}</b>No aprobados</div><div><b class="p">${c.P}</b>Listos para homologar</div></div>
+    <p class="sub" style="margin:0 0 8px">Aquí aparecen solo los robots cuyo equipo ya tiene el <b>pago verificado</b> y fue <b>acreditado</b>.${espera ? ' Aún faltan ' + espera + ' equipo(s) por pagar o acreditarse; aparecerán aquí cuando completen esos pasos.' : ''}</p><div id="lista"></div>`;
   const lista = () => {
     const q = norm(F.q), cat = D.categorias.find(k => k.cod === F.cat) || { checks: [] };
     const xs = eq.filter(e => !q || norm(e.equipo + ' ' + e.robot + ' ' + e.p.map(p => p.nombre).join(' ') + ' ' + e.inst).indexOf(q) >= 0);
     $('lista').innerHTML = xs.map(e => {
-      const s = e.homol.estado, k = s === 'NO APROBADO' ? 'NO' : s, ab = ABIERTO === e.codigo;
-      const puede = s !== 'APROBADO' || D.yo.admin;
-      return `<div class="card ${k} ${ab ? 'open' : ''}" data-cod="${e.codigo}"><div class="h"><span class="eq">${esc(e.equipo)} · “${esc(e.robot)}”<small>${esc(e.inst)}${e.homol.juez ? ' · ' + esc(e.homol.juez) + ' ' + esc(e.homol.hora || '') : ''}</small></span><span class="tag ${k}">${s}</span></div>
+      const esp = s0 => s0 === 'PENDIENTE' && !listo(e), s = esp(e.homol.estado) ? 'EN ESPERA' : e.homol.estado, k = s === 'NO APROBADO' ? 'NO' : s === 'EN ESPERA' ? 'ESP' : s, ab = ABIERTO === e.codigo;
+      const puede = s !== 'APROBADO' && (s !== 'EN ESPERA' || D.yo.admin) || D.yo.admin && s === 'APROBADO';
+      return `<div class="card ${k} ${s === 'EN ESPERA' ? 'espera' : ''} ${ab ? 'open' : ''}" data-cod="${e.codigo}"><div class="h"><span class="eq">${esc(e.equipo)} · “${esc(e.robot)}”<small>${esc(e.inst)}${e.homol.juez ? ' · ' + esc(e.homol.juez) + ' ' + esc(e.homol.hora || '') : ''}</small></span><span class="tag ${k}">${s}</span></div>
+        ${s === 'EN ESPERA' ? `<div class="obs" style="color:#667">En espera: ${!e.pago ? 'falta verificar el pago (Inscripción)' : 'falta la acreditación'}.${D.yo.admin ? ' Como administrador puedes homologar igual.' : ''}</div>` : ''}
         ${s === 'NO APROBADO' && e.homol.nocumple ? `<div class="obs">No cumple: ${esc(e.homol.nocumple)}</div>` : ''}
         ${ab && puede && s !== 'APROBADO' ? `<div class="chk">${cat.checks.map((t, i) => `<label><input type="checkbox" data-i="${i}">${esc(t)}</label>`).join('')}</div>
           <div class="bt"><button class="a" data-ap="1">✓ APROBAR</button><button class="n" data-ap="0">✕ NO APROBAR</button></div>` : ''}
         ${ab && s === 'APROBADO' ? `<div class="obs" style="color:#555">Ya aprobado. ${D.yo.admin ? 'Para cambiarlo usa Correcciones.' : 'Si fue un error, avisa al administrador.'}</div>` : ''}</div>`;
-    }).join('') || '<div class="vacio">No hay equipos en esta categoría.</div>';
+    }).join('') || '<div class="vacio">Todavía no hay robots listos para homologar en esta categoría.</div>';
     $('lista').querySelectorAll('.card .h').forEach(h => h.onclick = () => { const cod = h.parentNode.dataset.cod; ABIERTO = ABIERTO === cod ? '' : cod; lista(); });
     $('lista').querySelectorAll('[data-ap]').forEach(b => b.onclick = () => homologar(b, cat));
   };
