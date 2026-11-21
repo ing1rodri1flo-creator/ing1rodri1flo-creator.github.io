@@ -221,6 +221,15 @@ function acreditar(b) {
   const e = D.equipos.find(x => x.codigo === b.dataset.cod), p = e.p[b.dataset.n - 1];
   if (!p.acred && !e.pago && !D.yo.admin) { toast('Su pago aún no está verificado. Que pase primero por Inscripción.', true); return; }
   if (p.acred) { toast(D.yo.admin ? 'Para quitarla usa Correcciones.' : 'Ya está acreditado. Si fue un error, avisa al administrador.'); return; }
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="dlg"><h3>🪪 Confirmar acreditación</h3><p>¿Acreditar a <b style="font-size:18px">${esc(p.nombre)}</b>?<br>Equipo <b>${esc(e.equipo)}</b> · “${esc(e.robot)}” · ${e.cat} ${esc(catNom(e.cat))}</p>
+    <p class="sub" style="margin:0">Una vez acreditado, solo el administrador puede quitarlo.</p>
+    <div class="bt"><button class="gr" id="dCan">Cancelar</button><button class="a" id="dOk">✓ Sí, acreditar</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#dCan').onclick = () => ov.remove(); ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  ov.querySelector('#dOk').onclick = () => { ov.remove(); confirmarAcred(b, e, p); };
+}
+function confirmarAcred(b, e, p) {
   const fila = b.closest('.it'); fila.classList.add('ok', 'cargando'); b.textContent = '✓';
   api('pAcreditar', PIN, e.codigo, p.n).then(r => { p.acred = true; p.hora = r.hora; toast('Acreditado: ' + p.nombre); pintar(true); })
     .catch(er => { fila.classList.remove('ok'); b.textContent = ''; toast(er.message, true); })
