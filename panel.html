@@ -864,7 +864,7 @@ function vCert() {
         <div class="bt"><button class="cp" id="cPrueba">📄 Hoja de prueba de alineación</button></div>
         <p class="sub" style="margin:4px 0 0">En “Solo datos”, cada tipo de hoja base (Participación, 1.º, 2.º, 3.º) sale en un archivo aparte, para que cargues la bandeja con las hojas correctas.</p>
       </div>
-      <div class="bt" style="flex-wrap:wrap;margin-top:8px"><button class="b" id="bBase">⬇ Hojas base (1 de cada diseño)</button><button class="b" id="bBaseN">⬇ Hojas base exactas que necesitas</button><button class="b" id="bEnt">⬇ Lista de entrega con firma (PDF)</button></div>
+      <div class="bt" style="flex-wrap:wrap;margin-top:8px"><button class="b" id="bBase">⬇ Hojas base (1 de cada diseño)</button><button class="b" id="bBaseN">⬇ Hojas base exactas que necesitas</button><button class="b" id="bEnt">⬇ Lista de entrega con firma (PDF)</button><button class="a" id="bXls">⬇ Lista en Excel (nombres para certificados)</button></div>
     </div>
     <div class="seg"><button data-s="part">📜 Participación</button><button data-s="podio">🏆 Podios</button></div>
     ${CSEG === 'podio' ? `<div class="box" id="pbox"></div>` : ''}
@@ -883,6 +883,7 @@ function vCert() {
     if (!l.length) return toast('Aún no hay certificados.', true);
     toast(`Participación ${n[0]} · 1.º ${n[1]} · 2.º ${n[2]} · 3.º ${n[3]}`); generar(l, 'Hojas_base_exactas_GAMEBOTS_XIII', true); };
   $('bEnt').onclick = entregaPDF;
+  $('bXls').onclick = excelCert;
   m.querySelectorAll('.seg button').forEach(b => { b.classList.toggle('on', b.dataset.s === CSEG); b.onclick = () => { CSEG = b.dataset.s; SEL = new Set(); vCert(); }; });
   if (CERT) dibujaCert();
   api('pCertificados', PIN).then(r => { CERT = r; dibujaCert(); }).catch(e => $('cbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
@@ -923,6 +924,49 @@ function pintaLista() {
   $('cbox').querySelectorAll('[data-dc]').forEach(b => b.onclick = () => descargar(todos.filter(x => x.cat === b.dataset.dc), nom + '_' + b.dataset.dc));
   $('cbox').querySelectorAll('[data-one]').forEach(b => b.onclick = () => { const x = porK(b.dataset.one); descargar([x], 'Certificado_' + x.nombre.replace(/\s+/g, '_') + (x.puesto ? '_' + x.puesto + 'o' : '')); });
   $('cbox').querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editarNombre(b.dataset.ed));
+}
+/* ===== Excel (.xlsx) sin librerías: lista de nombres para certificados ===== */
+const CRCT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u) { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRCT[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) { // files: [[nombre, texto]] → Blob zip sin compresión
+  const enc = new TextEncoder(), loc = [], cen = []; let off = 0;
+  const u16 = v => [v & 255, (v >>> 8) & 255], u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+  files.forEach(([n, t]) => { const nb = enc.encode(n), d = enc.encode(t), c = crc32(d);
+    const h = [0x50, 0x4b, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(d.length), ...u32(d.length), ...u16(nb.length), ...u16(0)];
+    loc.push(new Uint8Array(h), nb, d);
+    cen.push(new Uint8Array([0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(d.length), ...u32(d.length), ...u16(nb.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), nb);
+    off += h.length + nb.length + d.length; });
+  const cl = cen.reduce((a, b) => a + b.length, 0);
+  const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...u16(files.length), ...u16(files.length), ...u32(cl), ...u32(off), 0, 0]);
+  return new Blob([...loc, ...cen, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function xlsx(hojas) { // hojas: [{nombre, anchos, filas:[[...]]}] (fila 0 = encabezado)
+  const x = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  const col = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; };
+  const f = [['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + hojas.map((h, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>'],
+    ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + hojas.map((h, i) => `<sheet name="${x(h.nombre)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + hojas.map((h, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + `<Relationship Id="rId${hojas.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B2E6B"/></patternFill></fill></fills><borders count="2"><border/><border><left style="thin"><color rgb="FFB0B8C8"/></left><right style="thin"><color rgb="FFB0B8C8"/></right><top style="thin"><color rgb="FFB0B8C8"/></top><bottom style="thin"><color rgb="FFB0B8C8"/></bottom></border></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="3"><xf/><xf fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf borderId="1" applyBorder="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>']];
+  hojas.forEach((h, i) => {
+    const rows = h.filas.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => typeof v === 'number' ? `<c r="${col(ci)}${ri + 1}" s="${ri ? 2 : 1}"><v>${v}</v></c>` : `<c r="${col(ci)}${ri + 1}" s="${ri ? 2 : 1}" t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`).join('') + '</row>').join('');
+    const last = col(h.filas[0].length - 1) + Math.max(1, h.filas.length);
+    f.push([`xl/worksheets/sheet${i + 1}.xml`, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'
+      + h.anchos.map((w, ci) => `<col min="${ci + 1}" max="${ci + 1}" width="${w}" customWidth="1"/>`).join('') + `</cols><sheetData>${rows}</sheetData>` + (h.filas.length > 1 ? `<autoFilter ref="A1:${last}"/>` : '') + '</worksheet>']);
+  });
+  return zipStore(f);
+}
+function excelCert() {
+  if (!CERT) return toast('Espera a que carguen los datos.', true);
+  const part = prep(CERT.participantes.map(x => Object.assign({}, x, { puesto: 0 })));
+  const pod = prep(ganadores());
+  if (!part.length && !pod.length) return toast('Aún no hay participantes acreditados.', true);
+  const H = ['N.º', 'NOMBRE', 'CATEGORÍA', 'CÓDIGO CATEGORÍA', 'NIVEL', 'EQUIPO', 'ROBOT', 'CÓDIGO'];
+  const fila = (x, i) => [i + 1, x.nombre, x.catNombre, x.cat, x.nivel || '', x.equipo, x.robot, x.codigo];
+  const hojas = [{ nombre: 'Participación', anchos: [6, 38, 26, 12, 13, 24, 20, 14], filas: [H].concat(part.map(fila)) }];
+  if (pod.length) hojas.push({ nombre: 'Podio', anchos: [6, 14, 38, 26, 12, 13, 24, 20, 14], filas: [['N.º', 'PUESTO'].concat(H.slice(1))].concat(pod.map((x, i) => [i + 1, PUESTO[x.puesto]].concat(fila(x, i).slice(1)))) });
+  bajar(xlsx(hojas), 'Nombres_certificados_GAMEBOTS_XIII.xlsx');
+  toast(`Excel listo: ${part.length} de participación${pod.length ? ' · ' + pod.length + ' de podio' : ''}`);
 }
 function editarNombre(cod) {
   const x = CERT.participantes.find(p => p.codigo === cod); if (!x) return;
