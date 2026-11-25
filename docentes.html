@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>GAMEBOTS XIII · Consulta para docentes</title>
+<style>
+:root{--azul:#0d47c9;--osc:#071433;--ok:#13795b;--line:#d6deec;--bg:#eef2f9;--muted:#5d6b85}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:#141a2e}
+header{background:var(--osc);color:#cfe0ff;padding:16px 16px 14px}
+header b{display:block;color:#fff;font-size:20px;font-style:italic;letter-spacing:.3px}
+header span{font-size:13px}
+main{max-width:760px;margin:0 auto;padding:14px}
+.box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px}
+h1{font-size:19px;margin:4px 0 4px}.sub{font-size:14px;color:var(--muted);margin:0 0 12px}
+.av{border-left:5px solid #c77700;background:#fff8e8}
+.av h2{font-size:15px;margin:0 0 8px;color:#7a4b00}
+.av ol{margin:0;padding-left:20px;font-size:14px;line-height:1.5}
+.av li{margin:0 0 6px}
+.bus{display:flex;gap:8px}
+input{flex:1;padding:12px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:16px}
+button{padding:12px 16px;border:0;border-radius:8px;background:var(--azul);color:#fff;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.vacio{color:var(--muted);text-align:center;padding:18px 6px;font-size:14px}
+.est{border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px;background:#fff}
+.est h3{margin:0;font-size:18px}.est .in{color:var(--muted);font-size:13px;margin:2px 0 10px}
+.mej{border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:14px}
+.mej b{display:block;font-size:17px;margin-top:2px}
+.m1{background:#fff3c4;border:1px solid #e8c34a}.m2{background:#eef1f5;border:1px solid #b9c2cf}.m3{background:#f8e3d0;border:1px solid #d79a64}.m0{background:#e8f4ee;border:1px solid #9fd0b6}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#0d2a6b;color:#fff;text-align:left;padding:7px 6px;font-weight:700}
+td{border-bottom:1px solid var(--line);padding:7px 6px;vertical-align:top}
+td small{color:var(--muted)}
+.pond{width:100%;border-collapse:collapse;margin:4px 0 10px;font-size:14px;text-align:center}.pond th{background:#0d2a6b;color:#fff;padding:6px}.pond td{padding:7px 4px;font-weight:800;font-size:15px;white-space:nowrap;border:1px solid var(--line)}
+.pts{display:inline-block;background:#0d2a6b;color:#fff;border-radius:8px;padding:6px 12px;font-size:18px;font-weight:800;margin-top:6px}
+.nota{font-size:12.5px;color:#7a4b00;background:#fff8e8;border-radius:8px;padding:8px 10px;margin-top:10px}
+.err{background:#fdecec;border:1px solid #f2b8b8;color:#8a1c1c}
+footer{text-align:center;font-size:12px;color:var(--muted);padding:6px 0 24px}
+</style></head><body>
+<header><b>GAMEBOTS XIII</b><span>Torneo Internacional de Robótica · Ingeniería Electrónica – UPEA · Consulta para docentes</span></header>
+<main id="app"></main>
+<footer>Carrera de Ingeniería Electrónica – Universidad Pública de El Alto</footer>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwvOiH9eWc9SkfuFnRsoKiy3OIeZsTwE9Ck44jONRkVk5xaNXQ8uFivAa8JBWkPw9X8QQ/exec";
+const K = new URLSearchParams(location.search).get('k') || '';
+const PUESTO = { 1: '1.er LUGAR', 2: '2.º LUGAR', 3: '3.er LUGAR' }, MED = { 1: '🥇', 2: '🥈', 3: '🥉' };
+const PTS = { 1: 15, 2: 10, 3: 8, 0: 5 }; // ponderación aprobada por el HCC (convocatoria interna)
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tit = t => String(t).toLowerCase().replace(/\s+/g, ' ').trim().split(' ').map((w, i) => (i && ['de', 'del', 'la', 'las', 'los', 'y', 'e'].indexOf(w) >= 0) ? w : w.replace(/(^|[-'])(\S)/g, (m, a, b) => a + b.toUpperCase())).join(' ');
+function api(fn, ...args) {
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args }) })
+    .then(r => r.text()).then(t => { let j; try { j = JSON.parse(t); } catch (e) { throw new Error('El servidor respondió algo inesperado.'); } if (!j.ok) throw new Error(j.error || 'Error del servidor.'); return j.data; },
+      e => { if (e && e.message && e.message.indexOf('servidor') >= 0) throw e; throw new Error('Sin conexión. Revise su internet.'); });
+}
+const app = document.getElementById('app');
+if (!K) app.innerHTML = '<div class="box"><h1>Acceso restringido</h1><p class="sub">Esta página solo se abre con el enlace que la Comisión Organizadora envía a los docentes.</p></div>';
+else {
+  app.innerHTML = `<h1>Verificación de participación</h1>
+    <p class="sub">Busque al estudiante para comprobar su participación en GAMEBOTS XIII y su resultado, y aplique la ponderación de la convocatoria interna de la Carrera.</p>
+    <div class="box"><h2 style="font-size:15px;margin:0 0 6px">Ponderación aprobada por el Honorable Consejo de Carrera (HCC)</h2>
+      <table class="pond"><tr><th>Primer lugar</th><th>Segundo lugar</th><th>Tercer lugar</th><th>Participación</th></tr>
+      <tr><td style="background:#fff3c4">15 puntos</td><td style="background:#eef1f5">10 puntos</td><td style="background:#f8e3d0">8 puntos</td><td style="background:#e8f4ee">5 puntos</td></tr></table>
+      <p class="sub" style="margin:0">Los puntos son para <b>cada integrante del equipo</b>. Válido para <b>estudiantes regulares de la Carrera de Ingeniería Electrónica</b>.</p></div>
+    <div class="box av"><h2>⚠️ Indicaciones para el docente</h2><ol>
+      <li>La ponderación se aplica a <b>UNA SOLA MATERIA</b>, aunque el estudiante haya participado en varias categorías.</li>
+      <li>La nota <b>NO es sumatoria</b>: se toma <b>únicamente el MEJOR resultado</b> obtenido por el estudiante (máximo 15 puntos).</li>
+      <li>El docente debe colocar su <b>pie de firma y firma en la parte trasera del certificado</b> del estudiante, como constancia de que la ponderación ya fue aplicada en su materia.</li></ol></div>
+    <div class="box"><div class="bus"><input id="q" type="search" placeholder="Nombre y apellido del estudiante" autocomplete="off"><button id="b">Buscar</button></div>
+      <p class="sub" style="margin:8px 0 0">También puede buscar con el código del certificado (por ejemplo GX13-001-1).</p></div>
+    <div id="res"></div>`;
+  const q = document.getElementById('q'), res = document.getElementById('res');
+  const buscar = () => {
+    const t = q.value.trim();
+    if (t.length < 3) { res.innerHTML = '<div class="box vacio">Escriba al menos 3 letras del nombre.</div>'; return; }
+    res.innerHTML = '<div class="box vacio">Buscando…</div>';
+    api('pDocentes', K, t).then(l => {
+      if (!l.length) { res.innerHTML = '<div class="box vacio">No se encontró a ningún participante acreditado con ese nombre.<br>Verifique la escritura o busque solo por apellido.</div>'; return; }
+      res.innerHTML = l.map(o => {
+        const mej = o.part.filter(p => p.puesto === o.mejor)[0] || o.part[0];
+        return `<div class="est"><h3>${esc(tit(o.nombre))}</h3><div class="in">${esc(o.inst || '—')} · participó en ${o.part.length} categoría(s)</div>
+          <div class="mej m${o.mejor}">Resultado a ponderar (el mejor):<b>${o.mejor ? MED[o.mejor] + ' ' + PUESTO[o.mejor] : '✅ PARTICIPACIÓN'} · ${esc(mej.cat)} ${esc(mej.catNombre)}</b><span class="pts">Puntos a asignar: ${PTS[o.mejor]}</span></div>
+          <table><tr><th>Categoría</th><th>Equipo / robot</th><th>Resultado</th><th>Puntos</th></tr>
+          ${o.part.map(p => `<tr><td>${esc(p.cat)}<br><small>${esc(p.catNombre)}</small></td><td>${esc(p.equipo)}<br><small>“${esc(p.robot)}” · ${esc(p.codigo)}</small></td><td>${p.puesto ? MED[p.puesto] + ' ' + PUESTO[p.puesto] : 'Participación'}</td><td>${PTS[p.puesto]}</td></tr>`).join('')}</table>
+          ${o.part.length > 1 ? `<div class="nota">Participó en varias categorías, pero se pondera <b>una sola vez</b>, en <b>una sola materia</b>, con el mejor resultado: <b>${PTS[o.mejor]} puntos</b> (no se suman).</div>` : ''}</div>`;
+      }).join('');
+    }).catch(e => { res.innerHTML = `<div class="box err">${esc(e.message)}</div>`; });
+  };
+  document.getElementById('b').onclick = buscar;
+  q.onkeydown = e => { if (e.key === 'Enter') buscar(); };
+}
+</script></body></html>

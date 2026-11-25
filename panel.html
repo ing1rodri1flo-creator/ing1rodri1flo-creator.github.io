@@ -160,7 +160,7 @@ function iniciar() {
   $('vLogin').hidden = true; $('app').hidden = false;
   $('yoNom').textContent = D.yo.nombre;
   $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', 'HOMOLOGACIÓN': 'Homologación', CERTIFICADOS: 'Certificados', 'INSCRIPCIÓN': 'Inscripción', JUEZ: 'Juez' }[D.yo.rol] || D.yo.rol;
-  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cupones', '🎟 Cupones'], ['sorteo', '🎲 Sorteo y listas'], ['cert', '📜 Certificados'], ['report', '📄 Reportes PDF']]
+  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cupones', '🎟 Cupones'], ['sorteo', '🎲 Sorteo y listas'], ['cert', '📜 Certificados'], ['lista', '📋 Participantes'], ['report', '📄 Reportes PDF']]
     : D.yo.rol === 'HOMOLOGACIÓN' ? [['homol', '🔧 Homologación']] : D.yo.rol === 'CERTIFICADOS' ? [['cert', '📜 Certificados']] : D.yo.rol === 'JUEZ' ? [['sorteo', '🎲 Lista de competencia'], ['podio', '🏆 Podio']] : D.yo.rol === 'INSCRIPCIÓN' ? [['inscr', '📝 Inscripción']] : [['acred', '🪪 Acreditación']];
   $('nav').innerHTML = vistas.length > 1 ? vistas.map(v => `<button data-v="${v[0]}">${v[1]}</button>`).join('') : '';
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => ir(b.dataset.v));
@@ -172,7 +172,7 @@ function ir(v) { VISTA = v; ss.set('gx_vista', v); F = { q: '', cat: '' }; ABIER
 function recargar() { return api('pDatos', PIN).then(d => { D = d; pintar(true); }).catch(e => { if (/PIN/.test(e.message)) { ss.del('gx_pin'); location.reload(); } }); }
 function pintar(suave) {
   const y = window.scrollY, foco = document.activeElement && document.activeElement.id;
-  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cupones: vCupones, cert: vCert, report: vReport, sorteo: vSorteo, podio: vPodio })[VISTA]();
+  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cupones: vCupones, cert: vCert, report: vReport, sorteo: vSorteo, podio: vPodio, lista: vLista })[VISTA]();
   if (suave) { window.scrollTo(0, y); if (foco && $(foco)) { const el = $(foco); el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); } }
 }
 const catNom = c => { const x = D.categorias.find(k => k.cod === c); return x ? x.nombre : c; };
@@ -967,6 +967,79 @@ function excelCert() {
   if (pod.length) hojas.push({ nombre: 'Podio', anchos: [6, 14, 38, 26, 12, 13, 24, 20, 14], filas: [['N.º', 'PUESTO'].concat(H.slice(1))].concat(pod.map((x, i) => [i + 1, PUESTO[x.puesto]].concat(fila(x, i).slice(1)))) });
   bajar(xlsx(hojas), 'Nombres_certificados_GAMEBOTS_XIII.xlsx');
   toast(`Excel listo: ${part.length} de participación${pod.length ? ' · ' + pod.length + ' de podio' : ''}`);
+}
+/* ---------- LISTA DE PARTICIPANTES (admin): quienes compitieron (acreditados) y podios, con buscador ---------- */
+let LST = null, LQ = '', LCAT = '', LRES = '', LPER = false;
+function vLista() {
+  $('main').innerHTML = `<h1>Participantes</h1><p class="sub">Todos los que <b>participaron</b> en la competencia (acreditados) con su resultado del podio. Útil para asignar notas de la convocatoria interna.</p>
+    <div class="box"><div class="fl" style="margin:0 0 8px"><b>🔎 Buscar</b><input id="lq" type="search" placeholder="Nombre, equipo, robot, institución o categoría" value="${esc(LQ)}"></div>
+      <div class="g2"><label class="fl">Categoría<select id="lc"><option value="">Todas</option>${D.categorias.map(c => `<option value="${c.cod}" ${LCAT === c.cod ? 'selected' : ''}>${c.cod} · ${esc(c.nombre)}</option>`).join('')}</select></label>
+      <label class="fl">Resultado<select id="lr"><option value="">Todos</option><option value="P">Solo podio</option><option value="1">1.er lugar</option><option value="2">2.º lugar</option><option value="3">3.er lugar</option><option value="0">Solo participación</option></select></label></div>
+      <label class="op" style="margin:6px 0"><input type="checkbox" id="lp" ${LPER ? 'checked' : ''}><span>Ver <b>por persona</b> (una fila por persona, con todas sus categorías)</span></label>
+      <div class="bt" style="flex-wrap:wrap"><button class="a" id="lx">⬇ Excel</button><button class="b" id="lf">⬇ PDF</button><button class="gr" id="lu">↻ Actualizar</button></div></div>
+    <div class="box" id="lbox"><div class="vacio">Cargando…</div></div>`;
+  $('lr').value = LRES;
+  $('lq').oninput = e => { LQ = e.target.value; pintaLst(); };
+  $('lc').onchange = e => { LCAT = e.target.value; pintaLst(); };
+  $('lr').onchange = e => { LRES = e.target.value; pintaLst(); };
+  $('lp').onchange = e => { LPER = e.target.checked; pintaLst(); };
+  $('lx').onclick = () => lstExcel(); $('lf').onclick = () => lstPDF();
+  const cargar = () => Promise.all([api('pCertificados', PIN), api('pSorteo', PIN)]).then(([c, so]) => { LST = armaLst(c, so); pintaLst(); }).catch(e => $('lbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
+  $('lu').onclick = () => { $('lbox').innerHTML = '<div class="vacio">Cargando…</div>'; cargar(); };
+  if (LST) pintaLst(); cargar();
+}
+function armaLst(c, so) {
+  const eq = {}; (so.equipos || []).forEach(e => eq[e.codigo] = e);
+  const pod = {}; (c.podio || []).forEach(r => pod[r.cat + '|' + r.codigo] = r.puesto);
+  const cn = {}; D.categorias.forEach(k => cn[k.cod] = k.nombre);
+  return c.participantes.map(p => { const t = p.codigo.replace(/-\d+$/, ''), e = eq[t] || {};
+    return { nombre: tituloNombre(NOMBRES[p.codigo] || p.nombre), codigo: p.codigo, cat: p.cat, catNombre: p.catNombre || cn[p.cat] || '', nivel: p.nivel || '',
+      equipo: p.equipo, robot: p.robot, inst: e.inst || '', homol: e.homol || '', puesto: pod[p.cat + '|' + t] || 0 }; })
+    .sort((a, b) => a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : (a.puesto || 9) - (b.puesto || 9) || norm(a.nombre).localeCompare(norm(b.nombre)));
+}
+const RES = p => p ? PUESTO[p] : 'Participación';
+function lstFiltra() {
+  const q = norm(LQ);
+  return (LST || []).filter(x => (!LCAT || x.cat === LCAT) && (LRES === '' || (LRES === 'P' ? x.puesto > 0 : x.puesto === Number(LRES)))
+    && (!q || norm([x.nombre, x.equipo, x.robot, x.inst, x.cat, x.catNombre, x.codigo].join(' ')).indexOf(q) >= 0));
+}
+function lstPersonas(l) {
+  const m = {};
+  l.forEach(x => { const k = norm(x.nombre); const o = m[k] || (m[k] = { nombre: x.nombre, inst: new Set(), cats: [], mejor: 0 });
+    if (x.inst) o.inst.add(x.inst); o.cats.push(x.cat + (x.puesto ? ' (' + x.puesto + '.º)' : '')); if (x.puesto && (!o.mejor || x.puesto < o.mejor)) o.mejor = x.puesto; });
+  return Object.values(m).map(o => Object.assign(o, { inst: [...o.inst].join(', ') })).sort((a, b) => norm(a.nombre).localeCompare(norm(b.nombre)));
+}
+function pintaLst() {
+  if (!LST || !$('lbox')) return;
+  const l = lstFiltra(), np = lstPersonas(LST).length, nPod = LST.filter(x => x.puesto).length;
+  let h = `<p style="margin:0 0 8px"><b>${LST.length}</b> participaciones · <b>${np}</b> personas · <b>${nPod}</b> en podio${l.length !== LST.length ? ` · mostrando <b>${l.length}</b>` : ''}</p>`;
+  if (!l.length) h += '<div class="vacio">No hay resultados.</div>';
+  else if (LPER) h += lstPersonas(l).map((o, i) => `<div class="it"><span class="nm">${i + 1}. ${o.mejor ? MED[o.mejor] + ' ' : ''}${esc(o.nombre)}<small>${esc(o.inst || '—')} · ${o.cats.length} categoría(s): ${esc(o.cats.join(', '))}</small></span></div>`).join('');
+  else h += l.map((x, i) => `<div class="it"><span class="nm">${i + 1}. ${x.puesto ? MED[x.puesto] + ' ' : ''}${esc(x.nombre)}<small>${x.cat} · ${esc(x.catNombre)} · ${esc(x.equipo)} · “${esc(x.robot)}”${x.inst ? ' · ' + esc(x.inst) : ''}</small></span><span class="tag" style="background:${x.puesto ? "#fff1c2;color:#7a5300" : "#e8edf5;color:#334"}">${x.puesto ? PUESTO[x.puesto] : "Participó"}</span></div>`).join('');
+  $('lbox').innerHTML = h;
+}
+function lstExcel() {
+  if (!LST) return toast('Espera a que carguen los datos.', true);
+  const l = lstFiltra(); if (!l.length) return toast('No hay datos para exportar.', true);
+  const h1 = { nombre: 'Participaciones', anchos: [6, 36, 12, 24, 13, 22, 18, 30, 16, 14, 14],
+    filas: [['N.º', 'NOMBRE', 'CÓD. CAT.', 'CATEGORÍA', 'NIVEL', 'EQUIPO', 'ROBOT', 'INSTITUCIÓN', 'RESULTADO', 'HOMOLOGACIÓN', 'CÓDIGO']].concat(l.map((x, i) => [i + 1, x.nombre, x.cat, x.catNombre, x.nivel, x.equipo, x.robot, x.inst, RES(x.puesto), x.homol, x.codigo])) };
+  const ps = lstPersonas(l);
+  const h2 = { nombre: 'Por persona', anchos: [6, 36, 30, 12, 40, 16, 13], filas: [['N.º', 'NOMBRE', 'INSTITUCIÓN', 'N.º CATEGORÍAS', 'CATEGORÍAS (puesto)', 'MEJOR RESULTADO', 'PUNTOS (HCC)']].concat(ps.map((o, i) => [i + 1, o.nombre, o.inst, o.cats.length, o.cats.join(', '), RES(o.mejor), ({ 1: 15, 2: 10, 3: 8, 0: 5 })[o.mejor]])) };
+  bajar(xlsx([h1, h2]), 'Participantes_GAMEBOTS_XIII.xlsx'); toast('Excel listo: ' + l.length + ' participaciones · ' + ps.length + ' personas');
+}
+function lstPDF() {
+  if (!LST) return toast('Espera a que carguen los datos.', true);
+  if (!window.jspdf) return toast('No cargó el generador de PDF. Revisa tu internet.', true);
+  const l = lstFiltra(); if (!l.length) return toast('No hay datos para exportar.', true);
+  const doc = nuevoDoc('portrait');
+  if (LPER) tablaPDF(doc, 'Lista de participantes por persona', 'Personas que participaron en GAMEBOTS XIII, con sus categorías y su mejor resultado.',
+    [{ t: 'N.º', w: 6 }, { t: 'Nombre', w: 30 }, { t: 'Institución', w: 24 }, { t: 'Categorías (puesto)', w: 26 }, { t: 'Mejor resultado', w: 14 }],
+    lstPersonas(l).map((o, i) => [i + 1, o.nombre, o.inst, o.cats.join(', '), RES(o.mejor)]));
+  else { const filas = []; let c = '';
+    l.forEach((x, i) => { if (x.cat !== c) { c = x.cat; filas.push({ grupo: x.cat + ' · ' + x.catNombre }); } filas.push([i + 1, x.nombre, x.equipo, x.inst, RES(x.puesto)]); });
+    tablaPDF(doc, 'Lista de participantes y podios', 'Participantes acreditados en GAMEBOTS XIII por categoría, con su resultado.',
+      [{ t: 'N.º', w: 6 }, { t: 'Nombre', w: 32 }, { t: 'Equipo', w: 20 }, { t: 'Institución', w: 24 }, { t: 'Resultado', w: 18 }], filas); }
+  pies(doc); doc.save('Participantes_GAMEBOTS_XIII.pdf'); toast('PDF listo');
 }
 function editarNombre(cod) {
   const x = CERT.participantes.find(p => p.codigo === cod); if (!x) return;
