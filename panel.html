@@ -160,7 +160,7 @@ function iniciar() {
   $('vLogin').hidden = true; $('app').hidden = false;
   $('yoNom').textContent = D.yo.nombre;
   $('yoRol').textContent = { ADMINISTRADOR: 'Administrador', 'ACREDITACIÓN': 'Acreditación', 'HOMOLOGACIÓN': 'Homologación', CERTIFICADOS: 'Certificados', 'INSCRIPCIÓN': 'Inscripción', JUEZ: 'Juez' }[D.yo.rol] || D.yo.rol;
-  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cupones', '🎟 Cupones'], ['sorteo', '🎲 Sorteo y listas'], ['cert', '📜 Certificados'], ['lista', '📋 Participantes'], ['report', '📄 Reportes PDF']]
+  const vistas = D.yo.admin ? [['resumen', '📊 Resumen'], ['inscr', '📝 Inscripción'], ['acred', '🪪 Acreditación'], ['homol', '🔧 Homologación'], ['correc', '✏️ Correcciones'], ['usuarios', '👥 Usuarios y PIN'], ['cupones', '🎟 Cupones'], ['sorteo', '🎲 Sorteo y listas'], ['cert', '📜 Certificados'], ['lista', '📋 Participantes'], ['medal', '🏆 Más podios'], ['report', '📄 Reportes PDF']]
     : D.yo.rol === 'HOMOLOGACIÓN' ? [['homol', '🔧 Homologación']] : D.yo.rol === 'CERTIFICADOS' ? [['cert', '📜 Certificados']] : D.yo.rol === 'JUEZ' ? [['sorteo', '🎲 Lista de competencia'], ['podio', '🏆 Podio']] : D.yo.rol === 'INSCRIPCIÓN' ? [['inscr', '📝 Inscripción']] : [['acred', '🪪 Acreditación']];
   $('nav').innerHTML = vistas.length > 1 ? vistas.map(v => `<button data-v="${v[0]}">${v[1]}</button>`).join('') : '';
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => ir(b.dataset.v));
@@ -172,7 +172,7 @@ function ir(v) { VISTA = v; ss.set('gx_vista', v); F = { q: '', cat: '' }; ABIER
 function recargar() { return api('pDatos', PIN).then(d => { D = d; pintar(true); }).catch(e => { if (/PIN/.test(e.message)) { ss.del('gx_pin'); location.reload(); } }); }
 function pintar(suave) {
   const y = window.scrollY, foco = document.activeElement && document.activeElement.id;
-  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cupones: vCupones, cert: vCert, report: vReport, sorteo: vSorteo, podio: vPodio, lista: vLista })[VISTA]();
+  ({ inscr: vInscr, resumen: vResumen, acred: vAcred, homol: vHomol, correc: vCorrec, usuarios: vUsuarios, cupones: vCupones, cert: vCert, report: vReport, sorteo: vSorteo, podio: vPodio, lista: vLista, medal: vMedal })[VISTA]();
   if (suave) { window.scrollTo(0, y); if (foco && $(foco)) { const el = $(foco); el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); } }
 }
 const catNom = c => { const x = D.categorias.find(k => k.cod === c); return x ? x.nombre : c; };
@@ -1040,6 +1040,54 @@ function lstPDF() {
     tablaPDF(doc, 'Lista de participantes y podios', 'Participantes acreditados en GAMEBOTS XIII por categoría, con su resultado.',
       [{ t: 'N.º', w: 6 }, { t: 'Nombre', w: 32 }, { t: 'Equipo', w: 20 }, { t: 'Institución', w: 24 }, { t: 'Resultado', w: 18 }], filas); }
   pies(doc); doc.save('Participantes_GAMEBOTS_XIII.pdf'); toast('PDF listo');
+}
+/* ---------- MEDALLERO (admin): equipo con más medallas → premio impresora 3D ---------- */
+let MDL = null;
+function armaMedal(c, so) {
+  const eq = {}; (so.equipos || []).forEach(e => eq[e.codigo] = e);
+  const cn = {}; D.categorias.forEach(k => cn[k.cod] = k.nombre);
+  const m = {};
+  (c.podio || []).forEach(r => { const e = eq[r.codigo] || {}; const nom = e.equipo || r.equipo || r.codigo; const k = norm(nom);
+    const o = m[k] || (m[k] = { equipo: nom, inst: new Set(), o: 0, p: 0, b: 0, det: [] });
+    if (e.inst) o.inst.add(e.inst);
+    if (r.puesto === 1) o.o++; else if (r.puesto === 2) o.p++; else if (r.puesto === 3) o.b++;
+    o.det.push({ cat: r.cat, catNombre: cn[r.cat] || '', puesto: r.puesto, robot: e.robot || '' }); });
+  const l = Object.values(m).map(o => Object.assign(o, { inst: [...o.inst].join(', '), total: o.o + o.p + o.b }));
+  l.sort((a, b) => b.total - a.total || b.o - a.o || b.p - a.p || norm(a.equipo).localeCompare(norm(b.equipo)));
+  let pos = 0; l.forEach((x, i) => { if (!i || x.total !== l[i - 1].total || x.o !== l[i - 1].o || x.p !== l[i - 1].p) pos = i + 1; x.pos = pos; });
+  return { l, cats: new Set((c.podio || []).map(r => r.cat)).size };
+}
+function vMedal() {
+  $('main').innerHTML = `<h1>Equipo con más podios</h1><p class="sub">Se cuentan los <b>podios</b> (1.º, 2.º o 3.er lugar) de cada equipo en todas sus categorías. Gana la <b>impresora 3D</b> el equipo con <b>más podios</b>; si empatan, el que tenga más primeros lugares y luego más segundos.</p>
+    <div class="box"><div class="bt" style="flex-wrap:wrap"><button class="a" id="mf">⬇ PDF de podios</button><button class="gr" id="mu">↻ Actualizar</button></div></div>
+    <div class="box" id="mbox"><div class="vacio">Cargando…</div></div>`;
+  const cargar = () => Promise.all([api('pCertificados', PIN), api('pSorteo', PIN)]).then(([c, so]) => { MDL = armaMedal(c, so); pintaMedal(); }).catch(e => $('mbox').innerHTML = `<div class="vacio">${esc(e.message)}</div>`);
+  $('mu').onclick = () => { $('mbox').innerHTML = '<div class="vacio">Cargando…</div>'; cargar(); };
+  $('mf').onclick = medalPDF;
+  if (MDL) pintaMedal(); cargar();
+}
+function pintaMedal() {
+  if (!MDL || !$('mbox')) return;
+  const l = MDL.l;
+  if (!l.length) { $('mbox').innerHTML = '<div class="vacio">Aún no hay podios registrados. El medallero se arma solo a medida que los jueces registran los ganadores.</div>'; return; }
+  const top = l.filter(x => x.pos === 1);
+  let h = `<p style="margin:0 0 10px">${MDL.cats} categoría(s) con podio registrado · ${l.length} equipo(s) con podio</p>`;
+  h += top.length > 1
+    ? `<div style="background:#fff4d6;border:1px solid #f0c35a;border-radius:10px;padding:10px 12px;margin:0 0 10px"><b>⚠ Empate en el 1.er lugar</b> entre ${top.map(x => esc(x.equipo)).join(', ')}. Tienen los mismos podios y los mismos primeros y segundos lugares: defina el desempate (por ejemplo, un sorteo).</div>`
+    : `<div style="background:#e9f7ef;border:1px solid #7cc79b;border-radius:10px;padding:10px 12px;margin:0 0 10px">🏆 <b>Va ganando la impresora 3D:</b> ${esc(top[0].equipo)}${top[0].inst ? ' · ' + esc(top[0].inst) : ''} · <b>${top[0].total} podio(s)</b> (${top[0].o} 🥇 ${top[0].p} 🥈 ${top[0].b} 🥉)</div>`;
+  h += `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="background:#0d2a6b"><th style="padding:7px;color:#fff">#</th><th style="text-align:left;padding:7px;color:#fff">Equipo</th><th>🥇</th><th>🥈</th><th>🥉</th><th style="color:#fff">Podios</th></tr>`
+    + l.map(x => `<tr style="border-bottom:1px solid #d6deec;${x.pos === 1 ? 'background:#fff8e1' : ''}"><td style="text-align:center;padding:7px;font-weight:700">${x.pos}</td><td style="padding:7px"><b>${esc(x.equipo)}</b><br><small style="color:#5d6b85">${esc(x.inst || '—')} · ${x.det.map(d => MED[d.puesto] + ' ' + esc(d.cat)).join(' · ')}</small></td><td style="text-align:center">${x.o}</td><td style="text-align:center">${x.p}</td><td style="text-align:center">${x.b}</td><td style="text-align:center;font-weight:700">${x.total}</td></tr>`).join('')
+    + '</table></div>';
+  $('mbox').innerHTML = h;
+}
+function medalPDF() {
+  if (!MDL || !MDL.l.length) return toast('Aún no hay podios registrados.', true);
+  if (!window.jspdf) return toast('No cargó el generador de PDF. Revisa tu internet.', true);
+  const doc = nuevoDoc('portrait');
+  tablaPDF(doc, 'Equipos con más podios', 'Orden: más podios; si empatan, más primeros y luego más segundos lugares. El 1.º recibe la impresora 3D.',
+    [{ t: 'Pos.', w: 6 }, { t: 'Equipo', w: 24 }, { t: 'Institución', w: 22 }, { t: '1.º', w: 6 }, { t: '2.º', w: 6 }, { t: '3.º', w: 6 }, { t: 'Podios', w: 8 }, { t: 'Categorías', w: 22 }],
+    MDL.l.map(x => [x.pos, x.equipo, x.inst, x.o, x.p, x.b, x.total, x.det.map(d => d.cat + ' (' + d.puesto + '.º)').join(', ')]));
+  pies(doc); doc.save('Podios_por_equipo_GAMEBOTS_XIII.pdf'); toast('PDF listo');
 }
 function editarNombre(cod) {
   const x = CERT.participantes.find(p => p.codigo === cod); if (!x) return;
